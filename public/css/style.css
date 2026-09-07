@@ -382,6 +382,19 @@ input[type="range"] {
   border-radius: 3px;
 }
 
+.corr-group-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brass);
+  margin: 0.9rem 0 0.5rem;
+}
+
+.corr-group-label:first-of-type {
+  margin-top: 0.6rem;
+}
+
 .correlations {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

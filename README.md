@@ -100,10 +100,12 @@ you want help setting one of those up; it's a bigger change than the above.
 3. Check the **Month** tab for a calendar colored by fog severity, or
    **Patterns** for a "wrapped"-style summary of the last 30 days: a
    generated-text readout of what stands out (top correlation, pressure-trend
-   comparison, storm days, best/worst day), three stacked time-series charts
-   sharing one date axis (pressure, Kp-index, and fog/energy/mood/sleep —
-   each on its own y-scale, hover for exact values), and the correlation
-   cards.
+   comparison, storm days, best/worst day, and — once you have a handful of
+   notes — which words come up most in them and how fog compares on days
+   that mention the top one), three stacked time-series charts sharing one
+   date axis (pressure, Kp-index, and fog/energy/mood/sleep — each on its
+   own y-scale, hover for exact values), and the correlation cards, grouped
+   into **Weather** (pressure, Kp-index) and **You** (energy, sleep, mood).
 
 ## APIs used (both free, no key required)
 
@@ -199,12 +201,24 @@ One JSON record per date, stored in `data/entries.json`:
 
 ## Correlation analysis
 
-Pearson's r between fog and each of energy / sleep / mood / Kp-index, computed
-across days that have both values logged. Requires at least 5 paired data
-points to display — treat it as descriptive, not causal. The Patterns tab's
-narrative surfaces whichever of these r values is strongest, in plain
-language, alongside a few other generated observations (all computed from
-your logged numbers, never guessed).
+Pearson's r between fog and each of pressure / Kp-index / energy / sleep /
+mood, computed across days that have both values logged. Requires at least 5
+paired data points to display — treat it as descriptive, not causal. The
+Patterns tab's narrative surfaces whichever of these r values is strongest,
+in plain language, alongside a few other generated observations (all
+computed from your logged numbers, never guessed).
+
+## Notes analysis
+
+The free-text notes on each day's entry feed into the Patterns narrative
+too, via simple word-frequency counting — not an LLM read of the prose, so
+it's instant and never invents what a note said. Once you have at least 5
+days with notes, it surfaces the words you mention most often (skipping
+common filler words like "the"/"and"/"was"), and — once there's a large
+enough split — compares average fog on days that mention the top word
+against days that don't (e.g. *"Days your notes mention 'headache' average
+fog 4.2/5, versus 2.6/5 on days that don't"*). A word only counts once per
+day no matter how many times it appears in that day's note.
 
 ## Project layout
 

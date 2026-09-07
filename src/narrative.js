@@ -3,6 +3,29 @@ import { fogCorrelations, avgFogByTrend } from "./stats.js";
 const STORM_KP = 5;
 const MIN_DAYS_FOR_INSIGHTS = 5;
 const MIN_GROUP_SIZE_FOR_TREND_COMPARISON = 3;
+const MIN_NOTE_DAYS_FOR_THEMES = 5;
+const MIN_WORD_DAYS = 3;
+const TOP_WORDS_SHOWN = 3;
+
+// Common English function words, excluded so word-frequency picks out the
+// actual content of a note (symptoms, activities, places) rather than glue words.
+const STOPWORDS = new Set([
+  "the", "and", "was", "but", "for", "with", "this", "that", "have", "had",
+  "were", "are", "from", "they", "them", "then", "than", "when", "what",
+  "just", "very", "really", "today", "yesterday", "tomorrow", "about",
+  "been", "being", "would", "could", "should", "there", "their", "here",
+  "some", "more", "most", "much", "even", "also", "still", "again",
+  "after", "before", "during", "while", "because", "into", "onto", "over",
+  "under", "between", "through", "around", "without", "not", "did", "does",
+  "doing", "done", "get", "got", "getting", "went", "going", "make",
+  "made", "making", "take", "took", "taking", "like", "know", "its",
+  "it's", "i'm", "im", "me", "my", "mine", "you", "your", "yours", "he",
+  "she", "his", "her", "we", "our", "ours", "who", "whom", "which", "how",
+  "why", "all", "any", "both", "each", "few", "other", "such", "only",
+  "own", "same", "too", "can", "will", "don", "dont", "didn", "didnt",
+  "doesn", "doesnt", "isn", "isnt", "wasn", "wasnt", "weren", "werent",
+  "won", "wont", "couldn", "couldnt", "shouldn", "shouldnt", "day", "days",
+]);
 
 const CORR_LABELS = {
   pressureHpa: "barometric pressure",
@@ -36,6 +59,55 @@ function describeCorrelation(key, r) {
       ? `your fog tends to rise along with your ${label}`
       : `your fog tends to be worse when your ${label} is lower`;
   return `Fog shows a ${strength} correlation with ${label} (r = ${r.toFixed(2)}) — ${direction}.`;
+}
+
+function tokenize(text) {
+  const words = text.toLowerCase().match(/[a-z']+/g) || [];
+  return words.filter((w) => w.length >= 3 && !STOPWORDS.has(w));
+}
+
+/**
+ * Word-frequency analysis of the free-text notes — deterministic, not an LLM
+ * read of the prose, so it stays instant and never invents what a note said.
+ * Surfaces the most-mentioned words, and (when there's a large enough split)
+ * compares average fog on days that mention the top word against days that don't.
+ */
+function extractNoteThemes(entries) {
+  const dayWords = entries
+    .filter((e) => typeof e.notes === "string" && e.notes.trim().length > 0)
+    .map((e) => ({ fog: e.fog, words: new Set(tokenize(e.notes)) }))
+    .filter((d) => d.words.size > 0);
+
+  if (dayWords.length < MIN_NOTE_DAYS_FOR_THEMES) return null;
+
+  const wordDayCount = new Map();
+  for (const { words } of dayWords) {
+    for (const w of words) {
+      wordDayCount.set(w, (wordDayCount.get(w) || 0) + 1);
+    }
+  }
+
+  const ranked = [...wordDayCount.entries()]
+    .filter(([, count]) => count >= MIN_WORD_DAYS)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  if (ranked.length === 0) return null;
+
+  const topWords = ranked.slice(0, TOP_WORDS_SHOWN).map(([word, count]) => ({ word, count }));
+
+  const [topWord] = ranked[0];
+  const withWord = dayWords.filter((d) => d.words.has(topWord) && typeof d.fog === "number");
+  const withoutWord = dayWords.filter((d) => !d.words.has(topWord) && typeof d.fog === "number");
+
+  let comparison = null;
+  if (withWord.length >= MIN_WORD_DAYS && withoutWord.length >= MIN_WORD_DAYS) {
+    comparison = {
+      word: topWord,
+      avgWith: round1(avg(withWord.map((d) => d.fog))),
+      avgWithout: round1(avg(withoutWord.map((d) => d.fog))),
+    };
+  }
+
+  return { topWords, comparison };
 }
 
 /**
@@ -104,6 +176,18 @@ export function generateNarrative(entries) {
     paragraphs.push(
       `You logged ${stormDays} geomagnetic storm day${stormDays === 1 ? "" : "s"} (Kp ≥ ${STORM_KP}) in this stretch.`
     );
+  }
+
+  const themes = extractNoteThemes(entries);
+  if (themes) {
+    const wordList = themes.topWords.map((t) => `"${t.word}"`).join(", ");
+    paragraphs.push(`Your notes mention ${wordList} most often this stretch.`);
+    if (themes.comparison) {
+      const { word, avgWith, avgWithout } = themes.comparison;
+      paragraphs.push(
+        `Days your notes mention "${word}" average fog ${avgWith}/5, versus ${avgWithout}/5 on days that don't.`
+      );
+    }
   }
 
   paragraphs.push(`Your clearest day was ${bestDay.date} (fog ${bestDay.fog}/5) — worth a look at what was different.`);

@@ -240,8 +240,10 @@ async function loadPatterns() {
     legendEl: document.getElementById("chart-symptoms-legend"),
   });
 
-  const corrContainer = document.getElementById("correlations");
-  corrContainer.innerHTML = "";
+  const weatherContainer = document.getElementById("correlations-weather");
+  const wellbeingContainer = document.getElementById("correlations-wellbeing");
+  weatherContainer.innerHTML = "";
+  wellbeingContainer.innerHTML = "";
   for (const [key, { r, n }] of Object.entries(data.correlations)) {
     const card = document.createElement("div");
     card.className = "corr-card";
@@ -255,7 +257,8 @@ async function loadPatterns() {
     nEl.className = "corr-n";
     nEl.textContent = r == null ? `Need ≥5 days (n=${n})` : `n=${n}`;
     card.append(label, value, nEl);
-    corrContainer.appendChild(card);
+    const container = key === "pressureHpa" || key === "kpIndex" ? weatherContainer : wellbeingContainer;
+    container.appendChild(card);
   }
 }
 
