@@ -106,6 +106,10 @@ you want help setting one of those up; it's a bigger change than the above.
    date axis (pressure, Kp-index, and fog/energy/mood/sleep — each on its
    own y-scale, hover for exact values), and the correlation cards, grouped
    into **Weather** (pressure, Kp-index) and **You** (energy, sleep, mood).
+4. Once you've logged into a second month, check the **Archive** tab for
+   the same patterns detail scoped to each past month individually, plus an
+   optional AI-generated summary per month — see **Archive & AI monthly
+   summary** below.
 
 ## APIs used (both free, no key required)
 
@@ -220,25 +224,57 @@ against days that don't (e.g. *"Days your notes mention 'headache' average
 fog 4.2/5, versus 2.6/5 on days that don't"*). A word only counts once per
 day no matter how many times it appears in that day's note.
 
+## Archive & AI monthly summary
+
+The **Archive** tab lists every calendar month you've logged (it appears
+once you've logged into a second month — a single month in progress isn't
+much of an archive yet). Click a month to see its own full patterns
+detail: the same generated-text "wrapped" narrative, correlation cards, and
+three time-series charts as the Patterns tab, just scoped to that specific
+month instead of a trailing 30 days.
+
+Each month also has an **AI Summary** — a richer, natural-language recap
+that (unlike the deterministic narrative) actually reads the notes rather
+than just counting words in them, written by Claude via the Anthropic API.
+It's handed the same computed stats and observations the narrative already
+shows (so it isn't asked to redo — or get wrong — any of the math) plus the
+full daily log including your notes, and told explicitly to stay grounded
+in that data rather than invent anything.
+
+This requires `ANTHROPIC_API_KEY` to be set in the server's environment.
+Without it, clicking **Generate AI summary** shows a clear "not set" error
+instead of a summary. With it set:
+
+- Click **Generate AI summary** on any month's Archive page to generate one
+  on demand (or **Regenerate** to replace an existing one).
+- If you're keeping the server running continuously (see **Run it
+  continuously** above), a month's summary is also generated automatically,
+  once, shortly after that month ends — no button required. It's cached in
+  `data/monthly-summaries.json`, so it's never silently regenerated (and
+  never silently costs another API call) just from viewing the page.
+
 ## Project layout
 
 ```
 server.js              Express app + API routes
-src/store.js            JSON-file persistence
+src/store.js            JSON-file persistence (entries, config, monthly AI summaries)
 src/weather.js           Open-Meteo geocoding + pressure fetch
 src/kpindex.js           NOAA Kp-index fetch
 src/llmFallback.js       LLM fallback when the above are unreachable
 src/reading.js           Orchestrates a live fetch: pressure + Kp + trend + alerts
 src/trend.js             Pressure trend computation
-src/stats.js             Pearson correlation, fog-by-trend, chart series
-src/narrative.js         Generated-text "wrapped" summary from computed stats
+src/stats.js             Pearson correlation, fog-by-trend, chart series, month grouping
+src/narrative.js         Generated-text "wrapped" summary from computed stats + notes
+src/aiSummary.js         Claude-generated monthly summary (prompt + API call)
 src/notify.js            Alert thresholds + desktop notification
 src/csv.js               CSV export
-src/scheduler.js         In-process daily auto-fetch (node-cron)
+src/scheduler.js         In-process daily auto-fetch + monthly AI summary (node-cron)
 scripts/daily-fetch.js   Standalone entrypoint for OS cron/launchd
 public/js/timeseries.js  Reusable SVG time-series chart (crosshair, tooltip, legend)
+public/js/shared.js      Rendering helpers shared by the Patterns and Archive tabs
+public/js/archive.js     Archive tab: month list + per-month detail + AI summary UI
 public/                  Frontend (vanilla HTML/CSS/JS, no build step)
-tests/                   node:test unit tests for trend/stats/narrative/csv/notify logic
+tests/                   node:test unit tests for trend/stats/narrative/aiSummary/csv/notify logic
 ```
 
 ## Tests
@@ -253,7 +289,7 @@ npm test
 |---------------------|-------------------------------------------------------|-------------------|
 | `PORT`               | HTTP port                                             | `3000`            |
 | `AUTO_FETCH_CRON`    | Cron expression for the in-process daily fetch, or `off` | `0 7 * * *`     |
-| `ANTHROPIC_API_KEY`  | Enables the LLM fallback if the weather/Kp APIs are unreachable | unset |
+| `ANTHROPIC_API_KEY`  | Enables the LLM fallback if the weather/Kp APIs are unreachable, and the Archive tab's AI monthly summaries | unset |
 | `DATA_DIR`           | Where `entries.json`/`config.json` are stored          | `./data`          |
 
 ## Design

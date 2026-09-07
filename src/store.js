@@ -6,6 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "..", "data");
 const ENTRIES_FILE = path.join(DATA_DIR, "entries.json");
 const CONFIG_FILE = path.join(DATA_DIR, "config.json");
+const MONTHLY_SUMMARIES_FILE = path.join(DATA_DIR, "monthly-summaries.json");
 
 const DEFAULT_CONFIG = {
   location: "Ljubljana, Slovenia",
@@ -73,4 +74,17 @@ export function setConfig(fields) {
   const config = { ...getConfig(), ...fields };
   writeJson(CONFIG_FILE, config);
   return config;
+}
+
+/** Cached AI-generated summary for a calendar month ("YYYY-MM"), or null. */
+export function getMonthlySummary(month) {
+  const summaries = readJson(MONTHLY_SUMMARIES_FILE, {});
+  return summaries[month] || null;
+}
+
+export function saveMonthlySummary(month, data) {
+  const summaries = readJson(MONTHLY_SUMMARIES_FILE, {});
+  summaries[month] = { ...data, month };
+  writeJson(MONTHLY_SUMMARIES_FILE, summaries);
+  return summaries[month];
 }

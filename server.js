@@ -9,10 +9,21 @@ import {
   getConfig,
   setConfig,
   getPriorReading,
+  getMonthlySummary,
+  saveMonthlySummary,
 } from "./src/store.js";
 import { fetchLiveReading, todayIso } from "./src/reading.js";
-import { fogCorrelations, avgFogByTrend, recentSeries, FOG_COLOR_SCALE } from "./src/stats.js";
+import {
+  fogCorrelations,
+  avgFogByTrend,
+  recentSeries,
+  FOG_COLOR_SCALE,
+  listMonths,
+  entriesForMonth,
+  monthLabel,
+} from "./src/stats.js";
 import { generateNarrative } from "./src/narrative.js";
+import { generateAiSummary } from "./src/aiSummary.js";
 import { checkAlerts } from "./src/notify.js";
 import { entriesToCsv } from "./src/csv.js";
 import { geocode } from "./src/weather.js";
@@ -129,6 +140,60 @@ app.get("/api/export.csv", (req, res) => {
 
 app.get("/api/today", (req, res) => {
   res.json({ date: todayIso() });
+});
+
+const MONTH_RE = /^\d{4}-\d{2}$/;
+function requireValidMonth(req, res, next) {
+  if (!MONTH_RE.test(req.params.month)) {
+    return res.status(400).json({ error: "month must be YYYY-MM" });
+  }
+  next();
+}
+
+// Archive: distinct calendar months present in the log, most recent first.
+app.get("/api/months", (req, res) => {
+  res.json(listMonths(getAllEntries()));
+});
+
+// Archive: full detail for one calendar month — narrative, correlations,
+// chartable series, and the cached AI summary (null if never generated).
+app.get("/api/months/:month", requireValidMonth, (req, res) => {
+  const month = req.params.month;
+  const monthEntries = entriesForMonth(getAllEntries(), month);
+  res.json({
+    month,
+    label: monthLabel(month),
+    isComplete: month < todayIso().slice(0, 7),
+    entryCount: monthEntries.length,
+    narrative: generateNarrative(monthEntries),
+    correlations: fogCorrelations(monthEntries),
+    series: recentSeries(monthEntries, 31),
+    aiSummary: getMonthlySummary(month),
+  });
+});
+
+// Generates (or regenerates) the AI summary for one month and caches it.
+// An explicit action rather than automatic-on-view, so viewing the archive
+// never silently makes an API call. See src/scheduler.js for the automatic
+// once-a-month generation that runs when the server is kept running.
+app.post("/api/months/:month/ai-summary", requireValidMonth, async (req, res) => {
+  const month = req.params.month;
+  const monthEntries = entriesForMonth(getAllEntries(), month);
+  if (monthEntries.length === 0) {
+    return res.status(400).json({ error: "No entries logged for this month" });
+  }
+  try {
+    const narrative = generateNarrative(monthEntries);
+    const summary = await generateAiSummary(monthLabel(month), monthEntries, narrative);
+    const saved = saveMonthlySummary(month, {
+      summary,
+      generatedAt: new Date().toISOString(),
+      entryCountAtGeneration: monthEntries.length,
+    });
+    res.json(saved);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
 });
 
 app.listen(PORT, () => {

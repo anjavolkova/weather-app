@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pearson, fogCorrelations, avgFogByTrend, recentSeries } from "../src/stats.js";
+import { pearson, fogCorrelations, avgFogByTrend, recentSeries, monthLabel, listMonths, entriesForMonth } from "../src/stats.js";
 
 test("pearson: perfect positive correlation", () => {
   const r = pearson([1, 2, 3, 4, 5], [2, 4, 6, 8, 10]);
@@ -70,4 +70,40 @@ test("recentSeries: returns at most `days` most recent entries in date order", (
   assert.equal(series.length, 30);
   assert.equal(series[0].date, entries[5].date);
   assert.equal(series.at(-1).date, entries.at(-1).date);
+});
+
+test("monthLabel: formats YYYY-MM as a month name and year", () => {
+  assert.equal(monthLabel("2026-08"), "August 2026");
+  assert.equal(monthLabel("2026-01"), "January 2026");
+  assert.equal(monthLabel("2026-12"), "December 2026");
+});
+
+test("listMonths: groups entries by calendar month, most recent first", () => {
+  const entries = [
+    { date: "2026-07-30" },
+    { date: "2026-08-01" },
+    { date: "2026-08-15" },
+    { date: "2026-09-02" },
+  ];
+  const months = listMonths(entries);
+  assert.deepEqual(
+    months.map((m) => m.month),
+    ["2026-09", "2026-08", "2026-07"]
+  );
+  assert.equal(months.find((m) => m.month === "2026-08").count, 2);
+  assert.equal(months.find((m) => m.month === "2026-08").label, "August 2026");
+});
+
+test("entriesForMonth: filters to one calendar month, sorted ascending", () => {
+  const entries = [
+    { date: "2026-08-15", fog: 2 },
+    { date: "2026-07-31", fog: 5 },
+    { date: "2026-08-01", fog: 3 },
+    { date: "2026-09-01", fog: 1 },
+  ];
+  const august = entriesForMonth(entries, "2026-08");
+  assert.deepEqual(
+    august.map((e) => e.date),
+    ["2026-08-01", "2026-08-15"]
+  );
 });

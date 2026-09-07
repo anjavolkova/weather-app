@@ -86,6 +86,34 @@ export function recentSeries(entries, days = 30) {
   });
 }
 
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** "2026-08" -> "August 2026" */
+export function monthLabel(month) {
+  const [y, m] = month.split("-").map(Number);
+  return `${MONTH_NAMES[m - 1]} ${y}`;
+}
+
+/** Distinct calendar months present in `entries`, most recent first, with a day count each. */
+export function listMonths(entries) {
+  const counts = new Map();
+  for (const e of entries) {
+    const month = e.date.slice(0, 7);
+    counts.set(month, (counts.get(month) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([month, count]) => ({ month, count, label: monthLabel(month) }))
+    .sort((a, b) => b.month.localeCompare(a.month));
+}
+
+/** Entries whose date falls within the given "YYYY-MM" month, sorted ascending. */
+export function entriesForMonth(entries, month) {
+  return entries.filter((e) => e.date.startsWith(month)).sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export const FOG_COLOR_SCALE = {
   1: "#6FA87E",
   2: "#9AAE72",

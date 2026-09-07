@@ -11,6 +11,13 @@
   --clear: #6fa87e;
 }
 
+/* Belt-and-suspenders: guarantees [hidden] always wins even when another
+   rule of equal specificity (e.g. a flex/grid display on the same element)
+   would otherwise beat the UA stylesheet's default [hidden]{display:none}. */
+[hidden] {
+  display: none !important;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -608,4 +615,52 @@ dialog::backdrop {
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1rem;
+}
+
+/* ---------- Archive ---------- */
+
+.archive-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.archive-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.archive-card {
+  background: var(--panel-raised);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.archive-card:hover {
+  border-color: var(--brass-dim);
+}
+
+.archive-card-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.archive-card-meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+#archive-ai-summary-content {
+  min-height: 1.5rem;
+}
+
+#archive-generate-ai {
+  margin-top: 0.5rem;
 }

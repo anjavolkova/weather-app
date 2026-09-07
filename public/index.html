@@ -15,6 +15,7 @@
       <button class="tab active" data-view="day">Day Log</button>
       <button class="tab" data-view="month">Month</button>
       <button class="tab" data-view="patterns">Patterns</button>
+      <button class="tab" data-view="archive">Archive</button>
     </nav>
     <div class="topbar-right">
       <button id="location-btn" class="ghost-btn" title="Change location">📍 <span id="location-label">…</span></button>
@@ -149,6 +150,72 @@
         <div id="correlations-wellbeing" class="correlations"></div>
       </div>
     </section>
+
+    <!-- ARCHIVE VIEW -->
+    <section id="view-archive" class="view">
+      <div id="archive-list-view" class="archive-wrap">
+        <div class="panel">
+          <h2 class="panel-title">Archive</h2>
+          <p class="hint">Every month you've logged, each with its own patterns summary and AI recap.</p>
+          <div id="archive-list" class="archive-list"></div>
+          <p id="archive-empty" class="hint" hidden>
+            Your archive will appear here once you've logged days across more than one month.
+          </p>
+        </div>
+      </div>
+
+      <div id="archive-detail-view" class="archive-wrap" hidden>
+        <div class="panel">
+          <button id="archive-back" class="ghost-btn">‹ Back to Archive</button>
+          <span class="wrapped-kicker" style="margin-top: 0.9rem;">Month in review</span>
+          <h2 id="archive-detail-headline" class="wrapped-headline">—</h2>
+          <div id="archive-detail-stats" class="wrapped-stats"></div>
+          <div id="archive-detail-paragraphs" class="wrapped-paragraphs"></div>
+        </div>
+
+        <div class="panel">
+          <div class="chart-panel-header">
+            <h2 class="panel-title">AI Summary</h2>
+          </div>
+          <div id="archive-ai-summary-content" class="wrapped-paragraphs"></div>
+          <button id="archive-generate-ai" class="brass-btn">Generate AI summary</button>
+          <p id="archive-ai-status" class="hint"></p>
+        </div>
+
+        <div class="panel chart-panel">
+          <div class="chart-panel-header">
+            <h2 class="panel-title">Barometric pressure</h2>
+            <span class="chart-panel-unit">hPa</span>
+          </div>
+          <svg id="archive-chart-pressure" class="ts-chart" role="img" aria-label="Barometric pressure for the month"></svg>
+        </div>
+
+        <div class="panel chart-panel">
+          <div class="chart-panel-header">
+            <h2 class="panel-title">Geomagnetic activity</h2>
+            <span class="chart-panel-unit">Kp-index</span>
+          </div>
+          <svg id="archive-chart-kp" class="ts-chart" role="img" aria-label="Kp-index for the month"></svg>
+        </div>
+
+        <div class="panel chart-panel">
+          <div class="chart-panel-header">
+            <h2 class="panel-title">Symptoms</h2>
+            <span class="chart-panel-unit">1–5 scale</span>
+          </div>
+          <div id="archive-chart-symptoms-legend" class="chart-legend-row"></div>
+          <svg id="archive-chart-symptoms" class="ts-chart" role="img" aria-label="Fog, energy, mood, and sleep for the month"></svg>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">Correlation with fog (Pearson r)</h2>
+          <span class="corr-group-label">Weather</span>
+          <div id="archive-correlations-weather" class="correlations"></div>
+          <span class="corr-group-label">You</span>
+          <div id="archive-correlations-wellbeing" class="correlations"></div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <dialog id="location-dialog">
@@ -168,6 +235,8 @@
   <script src="/js/dial.js"></script>
   <script src="/js/timeseries.js"></script>
   <script src="/js/calendar.js"></script>
+  <script src="/js/shared.js"></script>
   <script src="/js/app.js"></script>
+  <script src="/js/archive.js"></script>
 </body>
 </html>

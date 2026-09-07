@@ -43,6 +43,7 @@ function switchView(view) {
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === `view-${view}`));
   if (view === "month") loadMonth();
   if (view === "patterns") loadPatterns();
+  if (view === "archive") loadArchiveList();
 }
 
 // ---------- Day view ----------
@@ -156,110 +157,27 @@ document.getElementById("month-next").addEventListener("click", () => {
 });
 
 // ---------- Patterns view ----------
-const CORR_LABELS = {
-  pressureHpa: "Pressure",
-  kpIndex: "Kp-index",
-  energy: "Energy",
-  sleep: "Sleep",
-  mood: "Mood",
-};
-
-const SYMPTOM_LINES = [
-  { key: "fog", label: "Fog", color: "#3987e5" },
-  { key: "energy", label: "Energy", color: "#d95926" },
-  { key: "mood", label: "Mood", color: "#199e70" },
-  { key: "sleep", label: "Sleep", color: "#c98500" },
-];
-
-// Pressure has no fixed scale (unlike Kp 0-9 or the 1-5 symptom scales), so
-// its chart domain is derived from the data, padded and rounded to a clean step.
-function pressureDomain(series) {
-  const values = series.map((p) => p.pressureHpa).filter((v) => typeof v === "number");
-  if (values.length === 0) return { domain: [990, 1030], ticks: [990, 1010, 1030] };
-  const min = Math.floor(Math.min(...values) / 5) * 5 - 5;
-  const max = Math.ceil(Math.max(...values) / 5) * 5 + 5;
-  const mid = Math.round((min + max) / 2 / 5) * 5;
-  return { domain: [min, max], ticks: [min, mid, max] };
-}
-
 async function loadPatterns() {
   const res = await fetch("/api/patterns");
   const data = await res.json();
 
   document.getElementById("wrapped-headline").textContent = data.narrative.headline;
+  renderStatTiles(document.getElementById("wrapped-stats"), data.narrative.stats);
+  renderParagraphs(document.getElementById("wrapped-paragraphs"), data.narrative.paragraphs);
 
-  const statsContainer = document.getElementById("wrapped-stats");
-  statsContainer.innerHTML = "";
-  for (const stat of data.narrative.stats) {
-    const tile = document.createElement("div");
-    tile.className = "stat-tile";
-    const label = document.createElement("span");
-    label.className = "stat-label";
-    label.textContent = stat.label;
-    const value = document.createElement("span");
-    value.className = "stat-value";
-    value.textContent = stat.value;
-    tile.append(label, value);
-    statsContainer.appendChild(tile);
-  }
-
-  const paragraphsContainer = document.getElementById("wrapped-paragraphs");
-  paragraphsContainer.innerHTML = "";
-  for (const paragraph of data.narrative.paragraphs) {
-    const p = document.createElement("p");
-    p.textContent = paragraph;
-    paragraphsContainer.appendChild(p);
-  }
-
-  const { domain: pDomain, ticks: pTicks } = pressureDomain(data.series);
-  renderTimeSeriesChart(document.getElementById("chart-pressure"), {
+  renderPatternCharts({
+    pressureEl: document.getElementById("chart-pressure"),
+    kpEl: document.getElementById("chart-kp"),
+    symptomsEl: document.getElementById("chart-symptoms"),
+    symptomsLegendEl: document.getElementById("chart-symptoms-legend"),
     series: data.series,
-    lines: [{ key: "pressureHpa", label: "Pressure", color: "#C69A4E" }],
-    yDomain: pDomain,
-    yTicks: pTicks,
-    unit: " hPa",
-    decimals: 1,
   });
 
-  renderTimeSeriesChart(document.getElementById("chart-kp"), {
-    series: data.series,
-    lines: [{ key: "kpIndex", label: "Kp-index", color: "#9085e9" }],
-    yDomain: [0, 9],
-    yTicks: [0, 3, 6, 9],
-    threshold: { value: 5, label: "Storm ≥5", color: "#B1503F" },
-    decimals: 1,
-  });
-
-  renderTimeSeriesChart(document.getElementById("chart-symptoms"), {
-    series: data.series,
-    lines: SYMPTOM_LINES,
-    yDomain: [1, 5],
-    yTicks: [1, 3, 5],
-    unit: "/5",
-    decimals: 0,
-    legendEl: document.getElementById("chart-symptoms-legend"),
-  });
-
-  const weatherContainer = document.getElementById("correlations-weather");
-  const wellbeingContainer = document.getElementById("correlations-wellbeing");
-  weatherContainer.innerHTML = "";
-  wellbeingContainer.innerHTML = "";
-  for (const [key, { r, n }] of Object.entries(data.correlations)) {
-    const card = document.createElement("div");
-    card.className = "corr-card";
-    const label = document.createElement("div");
-    label.className = "corr-label";
-    label.textContent = CORR_LABELS[key] || key;
-    const value = document.createElement("div");
-    value.className = "corr-value";
-    value.textContent = r == null ? "—" : r.toFixed(2);
-    const nEl = document.createElement("div");
-    nEl.className = "corr-n";
-    nEl.textContent = r == null ? `Need ≥5 days (n=${n})` : `n=${n}`;
-    card.append(label, value, nEl);
-    const container = key === "pressureHpa" || key === "kpIndex" ? weatherContainer : wellbeingContainer;
-    container.appendChild(card);
-  }
+  renderCorrelationGroups(
+    document.getElementById("correlations-weather"),
+    document.getElementById("correlations-wellbeing"),
+    data.correlations
+  );
 }
 
 // ---------- Location dialog ----------
