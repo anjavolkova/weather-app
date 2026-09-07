@@ -24,6 +24,71 @@ change it any time via the 📍 button in the top bar.
 Data is stored as plain JSON in `data/entries.json` and `data/config.json`
 (created automatically on first write). No database setup needed.
 
+**Closing the terminal doesn't lose data** — every save writes straight to
+that JSON file on disk. It only stops the web server from being reachable
+until you run `npm start` again. See below to keep it running without
+babysitting a terminal window.
+
+## Run it continuously
+
+This is a local app — no need to deploy it anywhere (deploying to a
+serverless host like Vercel would actually *break* the JSON-file storage,
+since serverless filesystems don't persist writes). Instead, run it as a
+background service on your own machine with [pm2](https://pm2.keymetrics.io/),
+so it survives closing the terminal and restarts automatically on reboot:
+
+```bash
+npm install -g pm2
+npm run pm2:start        # starts the server under pm2, using ecosystem.config.cjs
+pm2 startup               # prints a command to run once — makes pm2 itself survive a reboot
+pm2 save                  # remembers the current process list so pm2 restores it on boot
+```
+
+The app is now at http://localhost:3000 permanently — reachable any time
+your computer is on, no terminal required. Useful commands:
+
+```bash
+pm2 status                    # is it running?
+npm run pm2:logs              # tail the server's logs
+npm run pm2:restart           # restart after pulling code changes
+npm run pm2:stop              # stop it
+```
+
+With the server always running, the built-in daily auto-fetch (07:00 local
+time — see **Scheduled auto-log** below) fires on its own; you don't need
+the separate OS-cron setup described there unless you'd rather not keep a
+persistent server process running at all.
+
+**On a headless Linux box** you may prefer a native `systemd` service
+instead of pm2 — same idea, no extra dependency:
+
+```ini
+# /etc/systemd/system/symptom-weather-tracker.service
+[Unit]
+Description=Symptom & Weather Tracker
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/path/to/weather-app
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+Environment=PORT=3000
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable --now symptom-weather-tracker
+```
+
+**Want it reachable from your phone or away from home**, not just
+`localhost`? That needs either port-forwarding on your router, a tool like
+Tailscale/ngrok to reach your home machine remotely, or moving to a
+cloud host with persistent storage (e.g. Railway, Render, Fly.io) — ask if
+you want help setting one of those up; it's a bigger change than the above.
+
 ## Daily workflow
 
 1. Open the **Day Log** tab (defaults to today).
