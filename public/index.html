@@ -107,24 +107,42 @@
 
     <!-- PATTERNS VIEW -->
     <section id="view-patterns" class="view">
-      <div class="panel">
-        <h2 class="panel-title">Fog by pressure trend</h2>
-        <div id="trend-bars" class="trend-bars"></div>
+      <div class="panel wrapped-hero">
+        <span class="wrapped-kicker">Your month, wrapped</span>
+        <h2 id="wrapped-headline" class="wrapped-headline">—</h2>
+        <div id="wrapped-stats" class="wrapped-stats"></div>
+        <div id="wrapped-paragraphs" class="wrapped-paragraphs"></div>
+      </div>
+
+      <div class="panel chart-panel">
+        <div class="chart-panel-header">
+          <h2 class="panel-title">Barometric pressure</h2>
+          <span class="chart-panel-unit">hPa</span>
+        </div>
+        <svg id="chart-pressure" class="ts-chart" role="img" aria-label="Barometric pressure over the last 30 days"></svg>
+      </div>
+
+      <div class="panel chart-panel">
+        <div class="chart-panel-header">
+          <h2 class="panel-title">Geomagnetic activity</h2>
+          <span class="chart-panel-unit">Kp-index</span>
+        </div>
+        <svg id="chart-kp" class="ts-chart" role="img" aria-label="Kp-index over the last 30 days"></svg>
+      </div>
+
+      <div class="panel chart-panel">
+        <div class="chart-panel-header">
+          <h2 class="panel-title">Symptoms</h2>
+          <span class="chart-panel-unit">1–5 scale</span>
+        </div>
+        <div id="chart-symptoms-legend" class="chart-legend-row"></div>
+        <svg id="chart-symptoms" class="ts-chart" role="img" aria-label="Fog, energy, mood, and sleep over the last 30 days"></svg>
       </div>
 
       <div class="panel">
         <h2 class="panel-title">Correlation with fog (Pearson r)</h2>
         <p class="hint">Descriptive only, not causal. Needs at least 5 days of paired data.</p>
         <div id="correlations" class="correlations"></div>
-      </div>
-
-      <div class="panel">
-        <h2 class="panel-title">Last 30 days — fog &amp; energy</h2>
-        <canvas id="trend-chart" width="800" height="280"></canvas>
-        <div class="chart-legend">
-          <span><i class="dot" style="background:#B1503F"></i>Fog</span>
-          <span><i class="dot" style="background:#6FA87E"></i>Energy</span>
-        </div>
       </div>
     </section>
   </main>
@@ -144,7 +162,7 @@
   </dialog>
 
   <script src="/js/dial.js"></script>
-  <script src="/js/chart.js"></script>
+  <script src="/js/timeseries.js"></script>
   <script src="/js/calendar.js"></script>
   <script src="/js/app.js"></script>
 </body>

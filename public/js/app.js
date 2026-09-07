@@ -156,32 +156,83 @@ document.getElementById("month-next").addEventListener("click", () => {
 });
 
 // ---------- Patterns view ----------
-const TREND_LABELS = { rising: "Rising", falling: "Falling", stable: "Stable", unsure: "Unsure" };
 const CORR_LABELS = { energy: "Energy", sleep: "Sleep", mood: "Mood", kpIndex: "Kp-index" };
+
+const SYMPTOM_LINES = [
+  { key: "fog", label: "Fog", color: "#3987e5" },
+  { key: "energy", label: "Energy", color: "#d95926" },
+  { key: "mood", label: "Mood", color: "#199e70" },
+  { key: "sleep", label: "Sleep", color: "#c98500" },
+];
+
+// Pressure has no fixed scale (unlike Kp 0-9 or the 1-5 symptom scales), so
+// its chart domain is derived from the data, padded and rounded to a clean step.
+function pressureDomain(series) {
+  const values = series.map((p) => p.pressureHpa).filter((v) => typeof v === "number");
+  if (values.length === 0) return { domain: [990, 1030], ticks: [990, 1010, 1030] };
+  const min = Math.floor(Math.min(...values) / 5) * 5 - 5;
+  const max = Math.ceil(Math.max(...values) / 5) * 5 + 5;
+  const mid = Math.round((min + max) / 2 / 5) * 5;
+  return { domain: [min, max], ticks: [min, mid, max] };
+}
 
 async function loadPatterns() {
   const res = await fetch("/api/patterns");
   const data = await res.json();
 
-  const trendContainer = document.getElementById("trend-bars");
-  trendContainer.innerHTML = "";
-  const maxAvg = 5;
-  for (const [trend, { avg, n }] of Object.entries(data.avgFogByTrend)) {
-    const row = document.createElement("div");
-    row.className = "trend-bar-row";
+  document.getElementById("wrapped-headline").textContent = data.narrative.headline;
+
+  const statsContainer = document.getElementById("wrapped-stats");
+  statsContainer.innerHTML = "";
+  for (const stat of data.narrative.stats) {
+    const tile = document.createElement("div");
+    tile.className = "stat-tile";
     const label = document.createElement("span");
-    label.textContent = TREND_LABELS[trend] || trend;
-    const track = document.createElement("div");
-    track.className = "trend-bar-track";
-    const fill = document.createElement("div");
-    fill.className = "trend-bar-fill";
-    fill.style.width = avg == null ? "0%" : `${(avg / maxAvg) * 100}%`;
-    track.appendChild(fill);
+    label.className = "stat-label";
+    label.textContent = stat.label;
     const value = document.createElement("span");
-    value.textContent = avg == null ? `n=${n}` : `${avg.toFixed(1)} (n=${n})`;
-    row.append(label, track, value);
-    trendContainer.appendChild(row);
+    value.className = "stat-value";
+    value.textContent = stat.value;
+    tile.append(label, value);
+    statsContainer.appendChild(tile);
   }
+
+  const paragraphsContainer = document.getElementById("wrapped-paragraphs");
+  paragraphsContainer.innerHTML = "";
+  for (const paragraph of data.narrative.paragraphs) {
+    const p = document.createElement("p");
+    p.textContent = paragraph;
+    paragraphsContainer.appendChild(p);
+  }
+
+  const { domain: pDomain, ticks: pTicks } = pressureDomain(data.series);
+  renderTimeSeriesChart(document.getElementById("chart-pressure"), {
+    series: data.series,
+    lines: [{ key: "pressureHpa", label: "Pressure", color: "#C69A4E" }],
+    yDomain: pDomain,
+    yTicks: pTicks,
+    unit: " hPa",
+    decimals: 1,
+  });
+
+  renderTimeSeriesChart(document.getElementById("chart-kp"), {
+    series: data.series,
+    lines: [{ key: "kpIndex", label: "Kp-index", color: "#9085e9" }],
+    yDomain: [0, 9],
+    yTicks: [0, 3, 6, 9],
+    threshold: { value: 5, label: "Storm ≥5", color: "#B1503F" },
+    decimals: 1,
+  });
+
+  renderTimeSeriesChart(document.getElementById("chart-symptoms"), {
+    series: data.series,
+    lines: SYMPTOM_LINES,
+    yDomain: [1, 5],
+    yTicks: [1, 3, 5],
+    unit: "/5",
+    decimals: 0,
+    legendEl: document.getElementById("chart-symptoms-legend"),
+  });
 
   const corrContainer = document.getElementById("correlations");
   corrContainer.innerHTML = "";
@@ -200,8 +251,6 @@ async function loadPatterns() {
     card.append(label, value, nEl);
     corrContainer.appendChild(card);
   }
-
-  renderTrendChart(document.getElementById("trend-chart"), data.series);
 }
 
 // ---------- Location dialog ----------

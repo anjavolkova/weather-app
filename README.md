@@ -33,8 +33,12 @@ Data is stored as plain JSON in `data/entries.json` and `data/config.json`
    the pressure trend (rising/falling/stable) by comparing to the most
    recent prior reading — it isn't guessed and isn't manually set.
 3. Check the **Month** tab for a calendar colored by fog severity, or
-   **Patterns** for average fog by pressure trend, correlations, and a
-   30-day fog/energy chart.
+   **Patterns** for a "wrapped"-style summary of the last 30 days: a
+   generated-text readout of what stands out (top correlation, pressure-trend
+   comparison, storm days, best/worst day), three stacked time-series charts
+   sharing one date axis (pressure, Kp-index, and fog/energy/mood/sleep —
+   each on its own y-scale, hover for exact values), and the correlation
+   cards.
 
 ## APIs used (both free, no key required)
 
@@ -97,8 +101,8 @@ A reading is checked against two thresholds worth noticing in the moment:
 - **Kp-index ≥ 5** (geomagnetic storm)
 - **Sharp pressure drop** — ≥ 3 hPa since the last logged reading
 
-When either fires (from the UI's "Fetch live reading" button, the in-process
-scheduler, or `scripts/daily-fetch.js`), the app attempts a desktop
+When either fires (from saving a Day Log entry, the in-process scheduler, or
+`scripts/daily-fetch.js`), the app attempts a desktop
 notification via `node-notifier` (best-effort — silently skipped if no
 notification daemon is available, e.g. in a headless environment) and always
 shows a banner in the web UI.
@@ -132,7 +136,10 @@ One JSON record per date, stored in `data/entries.json`:
 
 Pearson's r between fog and each of energy / sleep / mood / Kp-index, computed
 across days that have both values logged. Requires at least 5 paired data
-points to display — treat it as descriptive, not causal.
+points to display — treat it as descriptive, not causal. The Patterns tab's
+narrative surfaces whichever of these r values is strongest, in plain
+language, alongside a few other generated observations (all computed from
+your logged numbers, never guessed).
 
 ## Project layout
 
@@ -145,12 +152,14 @@ src/llmFallback.js       LLM fallback when the above are unreachable
 src/reading.js           Orchestrates a live fetch: pressure + Kp + trend + alerts
 src/trend.js             Pressure trend computation
 src/stats.js             Pearson correlation, fog-by-trend, chart series
+src/narrative.js         Generated-text "wrapped" summary from computed stats
 src/notify.js            Alert thresholds + desktop notification
 src/csv.js               CSV export
 src/scheduler.js         In-process daily auto-fetch (node-cron)
 scripts/daily-fetch.js   Standalone entrypoint for OS cron/launchd
+public/js/timeseries.js  Reusable SVG time-series chart (crosshair, tooltip, legend)
 public/                  Frontend (vanilla HTML/CSS/JS, no build step)
-tests/                   node:test unit tests for trend/stats/csv/notify logic
+tests/                   node:test unit tests for trend/stats/narrative/csv/notify logic
 ```
 
 ## Tests

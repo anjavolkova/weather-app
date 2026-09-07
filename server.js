@@ -12,6 +12,7 @@ import {
 } from "./src/store.js";
 import { fetchLiveReading, todayIso } from "./src/reading.js";
 import { fogCorrelations, avgFogByTrend, recentSeries, FOG_COLOR_SCALE } from "./src/stats.js";
+import { generateNarrative } from "./src/narrative.js";
 import { checkAlerts } from "./src/notify.js";
 import { entriesToCsv } from "./src/csv.js";
 import { geocode } from "./src/weather.js";
@@ -95,6 +96,7 @@ app.get("/api/patterns", (req, res) => {
     avgFogByTrend: avgFogByTrend(entries),
     correlations: fogCorrelations(entries),
     series: recentSeries(entries, 30),
+    narrative: generateNarrative(entries),
     fogColorScale: FOG_COLOR_SCALE,
     totalDays: entries.length,
   });

@@ -71,14 +71,18 @@ export function avgFogByTrend(entries) {
   return out;
 }
 
-/** Last N days (by date, inclusive of gaps) of fog/energy for a line chart. */
+const SERIES_FIELDS = ["fog", "energy", "mood", "sleep", "pressureHpa", "kpIndex"];
+
+/** Last N logged days (by date) with every chartable field, for the Patterns time-series panels. */
 export function recentSeries(entries, days = 30) {
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
-  return sorted.slice(-days).map((e) => ({
-    date: e.date,
-    fog: typeof e.fog === "number" ? e.fog : null,
-    energy: typeof e.energy === "number" ? e.energy : null,
-  }));
+  return sorted.slice(-days).map((e) => {
+    const point = { date: e.date };
+    for (const field of SERIES_FIELDS) {
+      point[field] = typeof e[field] === "number" ? e[field] : null;
+    }
+    return point;
+  });
 }
 
 export const FOG_COLOR_SCALE = {
