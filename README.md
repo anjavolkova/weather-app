@@ -27,12 +27,12 @@ Data is stored as plain JSON in `data/entries.json` and `data/config.json`
 ## Daily workflow
 
 1. Open the **Day Log** tab (defaults to today).
-2. Click **Fetch live reading** to pull current pressure (Open-Meteo) and
-   Kp-index (NOAA SWPC) for your configured location. The pressure trend
-   (rising/falling/stable) is computed by comparing to the most recent prior
-   reading — not guessed.
-3. Set the energy / fog / mood / sleep sliders and any notes, then **Save**.
-4. Check the **Month** tab for a calendar colored by fog severity, or
+2. Set the energy / fog / mood / sleep sliders and any notes, then **Save**.
+   The backend fetches current pressure (Open-Meteo) and Kp-index (NOAA
+   SWPC) for your configured location as part of the same save, and derives
+   the pressure trend (rising/falling/stable) by comparing to the most
+   recent prior reading — it isn't guessed and isn't manually set.
+3. Check the **Month** tab for a calendar colored by fog severity, or
    **Patterns** for average fog by pressure trend, correlations, and a
    30-day fog/energy chart.
 

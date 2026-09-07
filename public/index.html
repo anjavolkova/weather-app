@@ -42,12 +42,15 @@
             <span class="reading-value" id="reading-kp">—</span>
           </div>
           <div class="reading">
+            <span class="reading-label">Trend</span>
+            <span class="reading-value" id="reading-trend">—</span>
+          </div>
+          <div class="reading">
             <span class="reading-label">As of</span>
             <span class="reading-value" id="reading-time">—</span>
           </div>
         </div>
-        <button id="fetch-reading" class="brass-btn">Fetch live reading</button>
-        <p id="fetch-status" class="hint"></p>
+        <p class="hint">Pressure, Kp-index, and trend are fetched automatically when you save.</p>
       </div>
 
       <div class="panel form-panel">
@@ -66,16 +69,6 @@
         <label class="slider-field">
           <div class="slider-label"><span>Sleep quality</span><span class="slider-value" id="val-sleep">3</span></div>
           <input type="range" min="1" max="5" step="1" id="sleep" />
-        </label>
-
-        <label class="field">
-          <span>Pressure trend</span>
-          <select id="trend">
-            <option value="unsure">Unsure</option>
-            <option value="rising">Rising</option>
-            <option value="falling">Falling</option>
-            <option value="stable">Stable</option>
-          </select>
         </label>
 
         <label class="field">

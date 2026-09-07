@@ -57,20 +57,23 @@ async function loadDay(dateKey) {
     input.value = value;
     document.getElementById(`val-${field}`).textContent = value;
   }
-  document.getElementById("trend").value = currentEntry.trend || "unsure";
   document.getElementById("notes").value = currentEntry.notes || "";
 
   renderReadingRow();
   renderBarometer(barometerSvg, currentEntry.fog ?? null);
-  document.getElementById("fetch-status").textContent = "";
   document.getElementById("save-status").textContent = "";
 }
+
+const TREND_DISPLAY_LABELS = { rising: "Rising", falling: "Falling", stable: "Stable", unsure: "Unsure" };
 
 function renderReadingRow() {
   document.getElementById("reading-pressure").textContent =
     typeof currentEntry.pressureHpa === "number" ? `${currentEntry.pressureHpa} hPa` : "—";
   document.getElementById("reading-kp").textContent =
     typeof currentEntry.kpIndex === "number" ? currentEntry.kpIndex : "—";
+  document.getElementById("reading-trend").textContent = currentEntry.trend
+    ? TREND_DISPLAY_LABELS[currentEntry.trend] || currentEntry.trend
+    : "—";
   document.getElementById("reading-time").textContent = currentEntry.readingAsOf
     ? new Date(currentEntry.readingAsOf).toLocaleString()
     : "—";
@@ -93,41 +96,26 @@ document.getElementById("save-entry").addEventListener("click", async () => {
     fog: Number(document.getElementById("fog").value),
     mood: Number(document.getElementById("mood").value),
     sleep: Number(document.getElementById("sleep").value),
-    trend: document.getElementById("trend").value,
     notes: document.getElementById("notes").value,
   };
+  const btn = document.getElementById("save-entry");
   const status = document.getElementById("save-status");
-  status.textContent = "Saving…";
+  btn.disabled = true;
+  status.textContent = "Saving and fetching live pressure & Kp-index…";
   try {
     const res = await fetch(`/api/entries/${dayDateInput.value}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error((await res.json()).error || "Save failed");
-    currentEntry = await res.json();
-    status.textContent = "Saved.";
-    setTimeout(() => (status.textContent = ""), 2000);
-  } catch (err) {
-    status.textContent = `Error: ${err.message}`;
-  }
-});
-
-document.getElementById("fetch-reading").addEventListener("click", async () => {
-  const btn = document.getElementById("fetch-reading");
-  const status = document.getElementById("fetch-status");
-  btn.disabled = true;
-  status.textContent = "Fetching live pressure & Kp-index…";
-  try {
-    const res = await fetch(`/api/entries/${dayDateInput.value}/fetch-reading`, { method: "POST" });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Fetch failed");
+    if (!res.ok) throw new Error(data.error || "Save failed");
     currentEntry = data.entry;
-    document.getElementById("trend").value = currentEntry.trend || "unsure";
     renderReadingRow();
+    renderBarometer(barometerSvg, currentEntry.fog ?? null);
     showAlerts(data.alerts);
-    status.textContent = "Updated.";
-    setTimeout(() => (status.textContent = ""), 2000);
+    status.textContent = data.readingError ? `Saved. (Live reading unavailable: ${data.readingError})` : "Saved.";
+    setTimeout(() => (status.textContent = ""), data.readingError ? 6000 : 2000);
   } catch (err) {
     status.textContent = `Error: ${err.message}`;
   } finally {

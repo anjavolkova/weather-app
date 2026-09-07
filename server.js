@@ -32,9 +32,9 @@ function requireValidDate(req, res, next) {
   next();
 }
 
-const ENTRY_FIELDS = ["energy", "fog", "mood", "sleep", "trend", "notes"];
+// trend is not user-settable: it's derived from accumulated pressure readings (see src/trend.js)
+const ENTRY_FIELDS = ["energy", "fog", "mood", "sleep", "notes"];
 const SCALE_FIELDS = ["energy", "fog", "mood", "sleep"];
-const VALID_TRENDS = ["rising", "falling", "stable", "unsure"];
 
 function validateEntryBody(body) {
   for (const field of SCALE_FIELDS) {
@@ -44,9 +44,6 @@ function validateEntryBody(body) {
         return `${field} must be a number 1-5 or null`;
       }
     }
-  }
-  if ("trend" in body && body.trend !== null && !VALID_TRENDS.includes(body.trend)) {
-    return `trend must be one of ${VALID_TRENDS.join(", ")}`;
   }
   if ("notes" in body && body.notes !== null && typeof body.notes !== "string") {
     return "notes must be a string";
@@ -63,7 +60,11 @@ app.get("/api/entries/:date", requireValidDate, (req, res) => {
   res.json(entry);
 });
 
-app.put("/api/entries/:date", requireValidDate, (req, res) => {
+// Saves the symptom fields, then fetches live pressure + Kp-index and derives
+// the trend from accumulated readings, all in one call. The save always
+// succeeds even if the live fetch fails (e.g. no network) — in that case the
+// entry is still saved and `readingError` explains what didn't come through.
+app.put("/api/entries/:date", requireValidDate, async (req, res) => {
   const error = validateEntryBody(req.body || {});
   if (error) return res.status(400).json({ error });
 
@@ -71,16 +72,13 @@ app.put("/api/entries/:date", requireValidDate, (req, res) => {
   for (const field of ENTRY_FIELDS) {
     if (field in req.body) fields[field] = req.body[field];
   }
-  const entry = upsertEntry(req.params.date, fields);
-  res.json(entry);
-});
+  upsertEntry(req.params.date, fields);
 
-app.post("/api/entries/:date/fetch-reading", requireValidDate, async (req, res) => {
   try {
     const { entry, alerts } = await fetchLiveReading(req.params.date);
-    res.json({ entry, alerts });
+    res.json({ entry, alerts, readingError: null });
   } catch (err) {
-    res.status(502).json({ error: err.message });
+    res.json({ entry: getEntry(req.params.date), alerts: [], readingError: err.message });
   }
 });
 
