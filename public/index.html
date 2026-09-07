@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Symptom &amp; Weather Tracker</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="alert-banner" class="alert-banner" hidden></div>
+
+  <header class="topbar">
+    <h1>Symptom <span class="amp">&amp;</span> Weather</h1>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="day">Day Log</button>
+      <button class="tab" data-view="month">Month</button>
+      <button class="tab" data-view="patterns">Patterns</button>
+    </nav>
+    <div class="topbar-right">
+      <button id="location-btn" class="ghost-btn" title="Change location">📍 <span id="location-label">…</span></button>
+      <a id="export-link" class="ghost-btn" href="/api/export.csv" download>Export CSV</a>
+    </div>
+  </header>
+
+  <main id="app">
+    <!-- DAY VIEW -->
+    <section id="view-day" class="view active">
+      <div class="panel dial-panel">
+        <div class="dial-header">
+          <button id="day-prev" class="nav-arrow">‹</button>
+          <input type="date" id="day-date" />
+          <button id="day-next" class="nav-arrow">›</button>
+        </div>
+        <svg id="barometer" viewBox="0 0 240 160" class="barometer"></svg>
+        <div class="reading-row">
+          <div class="reading">
+            <span class="reading-label">Pressure</span>
+            <span class="reading-value" id="reading-pressure">—</span>
+          </div>
+          <div class="reading">
+            <span class="reading-label">Kp-index</span>
+            <span class="reading-value" id="reading-kp">—</span>
+          </div>
+          <div class="reading">
+            <span class="reading-label">As of</span>
+            <span class="reading-value" id="reading-time">—</span>
+          </div>
+        </div>
+        <button id="fetch-reading" class="brass-btn">Fetch live reading</button>
+        <p id="fetch-status" class="hint"></p>
+      </div>
+
+      <div class="panel form-panel">
+        <label class="slider-field">
+          <div class="slider-label"><span>Energy</span><span class="slider-value" id="val-energy">3</span></div>
+          <input type="range" min="1" max="5" step="1" id="energy" />
+        </label>
+        <label class="slider-field">
+          <div class="slider-label"><span>Brain fog</span><span class="slider-value" id="val-fog">3</span></div>
+          <input type="range" min="1" max="5" step="1" id="fog" />
+        </label>
+        <label class="slider-field">
+          <div class="slider-label"><span>Mood</span><span class="slider-value" id="val-mood">3</span></div>
+          <input type="range" min="1" max="5" step="1" id="mood" />
+        </label>
+        <label class="slider-field">
+          <div class="slider-label"><span>Sleep quality</span><span class="slider-value" id="val-sleep">3</span></div>
+          <input type="range" min="1" max="5" step="1" id="sleep" />
+        </label>
+
+        <label class="field">
+          <span>Pressure trend</span>
+          <select id="trend">
+            <option value="unsure">Unsure</option>
+            <option value="rising">Rising</option>
+            <option value="falling">Falling</option>
+            <option value="stable">Stable</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Notes</span>
+          <textarea id="notes" rows="4" placeholder="Anything worth remembering about today…"></textarea>
+        </label>
+
+        <button id="save-entry" class="brass-btn wide">Save entry</button>
+        <p id="save-status" class="hint"></p>
+      </div>
+    </section>
+
+    <!-- MONTH VIEW -->
+    <section id="view-month" class="view">
+      <div class="panel">
+        <div class="month-header">
+          <button id="month-prev" class="nav-arrow">‹</button>
+          <h2 id="month-label"></h2>
+          <button id="month-next" class="nav-arrow">›</button>
+        </div>
+        <div class="weekday-row">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div id="calendar-grid" class="calendar-grid"></div>
+        <div class="legend">
+          <span class="legend-label">Fog</span>
+          <span class="legend-swatch" style="background:#6FA87E"></span>
+          <span class="legend-swatch" style="background:#9AAE72"></span>
+          <span class="legend-swatch" style="background:#C69A4E"></span>
+          <span class="legend-swatch" style="background:#C4824D"></span>
+          <span class="legend-swatch" style="background:#B1503F"></span>
+          <span class="legend-label">Clear → Severe</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- PATTERNS VIEW -->
+    <section id="view-patterns" class="view">
+      <div class="panel">
+        <h2 class="panel-title">Fog by pressure trend</h2>
+        <div id="trend-bars" class="trend-bars"></div>
+      </div>
+
+      <div class="panel">
+        <h2 class="panel-title">Correlation with fog (Pearson r)</h2>
+        <p class="hint">Descriptive only, not causal. Needs at least 5 days of paired data.</p>
+        <div id="correlations" class="correlations"></div>
+      </div>
+
+      <div class="panel">
+        <h2 class="panel-title">Last 30 days — fog &amp; energy</h2>
+        <canvas id="trend-chart" width="800" height="280"></canvas>
+        <div class="chart-legend">
+          <span><i class="dot" style="background:#B1503F"></i>Fog</span>
+          <span><i class="dot" style="background:#6FA87E"></i>Energy</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="location-dialog">
+    <form method="dialog" id="location-form">
+      <label class="field">
+        <span>Location</span>
+        <input type="text" id="location-input" placeholder="City, Country" />
+      </label>
+      <p id="location-status" class="hint"></p>
+      <div class="dialog-actions">
+        <button type="button" id="location-cancel" class="ghost-btn">Cancel</button>
+        <button type="submit" id="location-save" class="brass-btn">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/js/dial.js"></script>
+  <script src="/js/chart.js"></script>
+  <script src="/js/calendar.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

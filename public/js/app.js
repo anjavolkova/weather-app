@@ -1,0 +1,263 @@
+const SCALE_FIELDS = ["energy", "fog", "mood", "sleep"];
+
+const dayDateInput = document.getElementById("day-date");
+const barometerSvg = document.getElementById("barometer");
+const alertBanner = document.getElementById("alert-banner");
+
+let currentEntry = { date: null };
+let monthCursor = new Date();
+monthCursor.setDate(1);
+
+function todayKey() {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+function shiftDateKey(key, deltaDays) {
+  const [y, m, d] = key.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + deltaDays);
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getDate()).padStart(2, "0");
+  return `${dt.getFullYear()}-${mm}-${dd}`;
+}
+
+function showAlerts(alerts) {
+  if (!alerts || alerts.length === 0) {
+    alertBanner.hidden = true;
+    return;
+  }
+  alertBanner.textContent = alerts.map((a) => a.message).join("   •   ");
+  alertBanner.hidden = false;
+}
+
+// ---------- Tabs ----------
+document.querySelectorAll(".tab").forEach((btn) => {
+  btn.addEventListener("click", () => switchView(btn.dataset.view));
+});
+
+function switchView(view) {
+  document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.view === view));
+  document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === `view-${view}`));
+  if (view === "month") loadMonth();
+  if (view === "patterns") loadPatterns();
+}
+
+// ---------- Day view ----------
+async function loadDay(dateKey) {
+  dayDateInput.value = dateKey;
+  const res = await fetch(`/api/entries/${dateKey}`);
+  currentEntry = await res.json();
+
+  for (const field of SCALE_FIELDS) {
+    const input = document.getElementById(field);
+    const value = typeof currentEntry[field] === "number" ? currentEntry[field] : 3;
+    input.value = value;
+    document.getElementById(`val-${field}`).textContent = value;
+  }
+  document.getElementById("trend").value = currentEntry.trend || "unsure";
+  document.getElementById("notes").value = currentEntry.notes || "";
+
+  renderReadingRow();
+  renderBarometer(barometerSvg, currentEntry.fog ?? null);
+  document.getElementById("fetch-status").textContent = "";
+  document.getElementById("save-status").textContent = "";
+}
+
+function renderReadingRow() {
+  document.getElementById("reading-pressure").textContent =
+    typeof currentEntry.pressureHpa === "number" ? `${currentEntry.pressureHpa} hPa` : "—";
+  document.getElementById("reading-kp").textContent =
+    typeof currentEntry.kpIndex === "number" ? currentEntry.kpIndex : "—";
+  document.getElementById("reading-time").textContent = currentEntry.readingAsOf
+    ? new Date(currentEntry.readingAsOf).toLocaleString()
+    : "—";
+}
+
+SCALE_FIELDS.forEach((field) => {
+  document.getElementById(field).addEventListener("input", (e) => {
+    document.getElementById(`val-${field}`).textContent = e.target.value;
+    if (field === "fog") renderBarometer(barometerSvg, Number(e.target.value));
+  });
+});
+
+dayDateInput.addEventListener("change", () => loadDay(dayDateInput.value));
+document.getElementById("day-prev").addEventListener("click", () => loadDay(shiftDateKey(dayDateInput.value, -1)));
+document.getElementById("day-next").addEventListener("click", () => loadDay(shiftDateKey(dayDateInput.value, 1)));
+
+document.getElementById("save-entry").addEventListener("click", async () => {
+  const body = {
+    energy: Number(document.getElementById("energy").value),
+    fog: Number(document.getElementById("fog").value),
+    mood: Number(document.getElementById("mood").value),
+    sleep: Number(document.getElementById("sleep").value),
+    trend: document.getElementById("trend").value,
+    notes: document.getElementById("notes").value,
+  };
+  const status = document.getElementById("save-status");
+  status.textContent = "Saving…";
+  try {
+    const res = await fetch(`/api/entries/${dayDateInput.value}`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || "Save failed");
+    currentEntry = await res.json();
+    status.textContent = "Saved.";
+    setTimeout(() => (status.textContent = ""), 2000);
+  } catch (err) {
+    status.textContent = `Error: ${err.message}`;
+  }
+});
+
+document.getElementById("fetch-reading").addEventListener("click", async () => {
+  const btn = document.getElementById("fetch-reading");
+  const status = document.getElementById("fetch-status");
+  btn.disabled = true;
+  status.textContent = "Fetching live pressure & Kp-index…";
+  try {
+    const res = await fetch(`/api/entries/${dayDateInput.value}/fetch-reading`, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Fetch failed");
+    currentEntry = data.entry;
+    document.getElementById("trend").value = currentEntry.trend || "unsure";
+    renderReadingRow();
+    showAlerts(data.alerts);
+    status.textContent = "Updated.";
+    setTimeout(() => (status.textContent = ""), 2000);
+  } catch (err) {
+    status.textContent = `Error: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// ---------- Month view ----------
+async function loadMonth() {
+  const year = monthCursor.getFullYear();
+  const month = monthCursor.getMonth();
+  document.getElementById("month-label").textContent = monthCursor.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
+
+  const res = await fetch("/api/entries");
+  const entries = await res.json();
+  const map = new Map(entries.map((e) => [e.date, e]));
+
+  renderCalendar(document.getElementById("calendar-grid"), year, month, map, (dateKey) => {
+    switchView("day");
+    document.querySelector('.tab[data-view="day"]').classList.add("active");
+    document.querySelector('.tab[data-view="month"]').classList.remove("active");
+    document.getElementById("view-day").classList.add("active");
+    document.getElementById("view-month").classList.remove("active");
+    loadDay(dateKey);
+  });
+}
+
+document.getElementById("month-prev").addEventListener("click", () => {
+  monthCursor.setMonth(monthCursor.getMonth() - 1);
+  loadMonth();
+});
+document.getElementById("month-next").addEventListener("click", () => {
+  monthCursor.setMonth(monthCursor.getMonth() + 1);
+  loadMonth();
+});
+
+// ---------- Patterns view ----------
+const TREND_LABELS = { rising: "Rising", falling: "Falling", stable: "Stable", unsure: "Unsure" };
+const CORR_LABELS = { energy: "Energy", sleep: "Sleep", mood: "Mood", kpIndex: "Kp-index" };
+
+async function loadPatterns() {
+  const res = await fetch("/api/patterns");
+  const data = await res.json();
+
+  const trendContainer = document.getElementById("trend-bars");
+  trendContainer.innerHTML = "";
+  const maxAvg = 5;
+  for (const [trend, { avg, n }] of Object.entries(data.avgFogByTrend)) {
+    const row = document.createElement("div");
+    row.className = "trend-bar-row";
+    const label = document.createElement("span");
+    label.textContent = TREND_LABELS[trend] || trend;
+    const track = document.createElement("div");
+    track.className = "trend-bar-track";
+    const fill = document.createElement("div");
+    fill.className = "trend-bar-fill";
+    fill.style.width = avg == null ? "0%" : `${(avg / maxAvg) * 100}%`;
+    track.appendChild(fill);
+    const value = document.createElement("span");
+    value.textContent = avg == null ? `n=${n}` : `${avg.toFixed(1)} (n=${n})`;
+    row.append(label, track, value);
+    trendContainer.appendChild(row);
+  }
+
+  const corrContainer = document.getElementById("correlations");
+  corrContainer.innerHTML = "";
+  for (const [key, { r, n }] of Object.entries(data.correlations)) {
+    const card = document.createElement("div");
+    card.className = "corr-card";
+    const label = document.createElement("div");
+    label.className = "corr-label";
+    label.textContent = CORR_LABELS[key] || key;
+    const value = document.createElement("div");
+    value.className = "corr-value";
+    value.textContent = r == null ? "—" : r.toFixed(2);
+    const nEl = document.createElement("div");
+    nEl.className = "corr-n";
+    nEl.textContent = r == null ? `Need ≥5 days (n=${n})` : `n=${n}`;
+    card.append(label, value, nEl);
+    corrContainer.appendChild(card);
+  }
+
+  renderTrendChart(document.getElementById("trend-chart"), data.series);
+}
+
+// ---------- Location dialog ----------
+const locationDialog = document.getElementById("location-dialog");
+const locationInput = document.getElementById("location-input");
+const locationStatus = document.getElementById("location-status");
+const locationLabel = document.getElementById("location-label");
+
+async function loadConfig() {
+  const res = await fetch("/api/config");
+  const config = await res.json();
+  locationLabel.textContent = config.location;
+  return config;
+}
+
+document.getElementById("location-btn").addEventListener("click", async () => {
+  const config = await loadConfig();
+  locationInput.value = config.location;
+  locationStatus.textContent = "";
+  locationDialog.showModal();
+});
+
+document.getElementById("location-cancel").addEventListener("click", () => locationDialog.close());
+
+document.getElementById("location-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  locationStatus.textContent = "Looking up location…";
+  try {
+    const res = await fetch("/api/config", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ location: locationInput.value }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not resolve location");
+    locationLabel.textContent = data.location;
+    locationDialog.close();
+  } catch (err) {
+    locationStatus.textContent = `Error: ${err.message}`;
+  }
+});
+
+// ---------- Init ----------
+(async function init() {
+  await loadConfig();
+  await loadDay(todayKey());
+})();
