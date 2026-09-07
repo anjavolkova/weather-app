@@ -156,7 +156,13 @@ document.getElementById("month-next").addEventListener("click", () => {
 });
 
 // ---------- Patterns view ----------
-const CORR_LABELS = { energy: "Energy", sleep: "Sleep", mood: "Mood", kpIndex: "Kp-index" };
+const CORR_LABELS = {
+  pressureHpa: "Pressure",
+  kpIndex: "Kp-index",
+  energy: "Energy",
+  sleep: "Sleep",
+  mood: "Mood",
+};
 
 const SYMPTOM_LINES = [
   { key: "fog", label: "Fog", color: "#3987e5" },

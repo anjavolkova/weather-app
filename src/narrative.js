@@ -4,7 +4,13 @@ const STORM_KP = 5;
 const MIN_DAYS_FOR_INSIGHTS = 5;
 const MIN_GROUP_SIZE_FOR_TREND_COMPARISON = 3;
 
-const CORR_LABELS = { energy: "energy", sleep: "sleep quality", mood: "mood", kpIndex: "Kp-index" };
+const CORR_LABELS = {
+  pressureHpa: "barometric pressure",
+  kpIndex: "Kp-index",
+  energy: "energy",
+  sleep: "sleep quality",
+  mood: "mood",
+};
 
 function avg(values) {
   if (values.length === 0) return null;

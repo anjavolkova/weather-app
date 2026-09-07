@@ -36,12 +36,13 @@ function pairedValues(entries, keyA, keyB) {
 }
 
 /**
- * Correlation of fog against energy, sleep, mood, and kpIndex, each computed
- * across the days that have both values logged. Returns r=null when there
- * aren't enough paired points (< MIN_POINTS_FOR_CORRELATION) to be meaningful.
+ * Correlation of fog against pressure, Kp-index, energy, sleep, and mood,
+ * each computed across the days that have both values logged. Returns
+ * r=null when there aren't enough paired points (< MIN_POINTS_FOR_CORRELATION)
+ * to be meaningful.
  */
 export function fogCorrelations(entries) {
-  const targets = ["energy", "sleep", "mood", "kpIndex"];
+  const targets = ["pressureHpa", "kpIndex", "energy", "sleep", "mood"];
   const result = {};
   for (const key of targets) {
     const { xs, ys } = pairedValues(entries, "fog", key);

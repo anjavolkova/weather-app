@@ -1,4 +1,6 @@
-// Month calendar grid, cells colored by that day's fog severity.
+// Month calendar grid. Cells are colored by that day's fog severity and show
+// a few other logged values at a glance (pressure trend, mood) so a pattern
+// across the month is visible without opening each day.
 const FOG_COLORS_CAL = {
   1: "#6FA87E",
   2: "#9AAE72",
@@ -7,10 +9,63 @@ const FOG_COLORS_CAL = {
   5: "#B1503F",
 };
 
+const TREND_ARROWS = { rising: "↑", falling: "↓", stable: "→", unsure: "·" };
+
 function toDateKey(year, month, day) {
   const mm = String(month + 1).padStart(2, "0");
   const dd = String(day).padStart(2, "0");
   return `${year}-${mm}-${dd}`;
+}
+
+function buildDayCell(day, entry, isToday) {
+  const cell = document.createElement("button");
+  cell.className = "day-cell";
+  if (isToday) cell.classList.add("today");
+
+  const hasFog = entry && typeof entry.fog === "number";
+  if (hasFog) {
+    cell.style.background = FOG_COLORS_CAL[Math.round(entry.fog)];
+    cell.classList.add("has-data");
+  }
+
+  const top = document.createElement("div");
+  top.className = "day-cell-top";
+  const dayNum = document.createElement("span");
+  dayNum.className = "day-num";
+  dayNum.textContent = day;
+  top.appendChild(dayNum);
+  if (hasFog) {
+    const fogBadge = document.createElement("span");
+    fogBadge.className = "day-fog-badge";
+    fogBadge.textContent = `F${entry.fog}`;
+    fogBadge.title = `Fog ${entry.fog}/5`;
+    top.appendChild(fogBadge);
+  }
+  cell.appendChild(top);
+
+  if (entry && (typeof entry.pressureHpa === "number" || typeof entry.mood === "number")) {
+    const bottom = document.createElement("div");
+    bottom.className = "day-cell-bottom";
+
+    if (typeof entry.pressureHpa === "number") {
+      const pressure = document.createElement("span");
+      pressure.className = "day-pressure";
+      const arrow = TREND_ARROWS[entry.trend] || "";
+      pressure.textContent = `${arrow}${Math.round(entry.pressureHpa)}`;
+      pressure.title = `Pressure ${entry.pressureHpa} hPa, ${entry.trend || "unsure"}`;
+      bottom.appendChild(pressure);
+    }
+    if (typeof entry.mood === "number") {
+      const mood = document.createElement("span");
+      mood.className = "day-mood";
+      mood.textContent = `M${entry.mood}`;
+      mood.title = `Mood ${entry.mood}/5`;
+      bottom.appendChild(mood);
+    }
+    cell.appendChild(bottom);
+  }
+
+  return cell;
 }
 
 /**
@@ -33,15 +88,7 @@ function renderCalendar(container, year, month, entriesByDate, onDayClick) {
   for (let day = 1; day <= daysInMonth; day++) {
     const key = toDateKey(year, month, day);
     const entry = entriesByDate.get(key);
-    const cell = document.createElement("button");
-    cell.className = "day-cell";
-    if (key === todayKey) cell.classList.add("today");
-    cell.textContent = day;
-    if (entry && typeof entry.fog === "number") {
-      cell.style.background = FOG_COLORS_CAL[Math.round(entry.fog)];
-      cell.style.color = "#10151c";
-      cell.style.fontWeight = "600";
-    }
+    const cell = buildDayCell(day, entry, key === todayKey);
     cell.addEventListener("click", () => onDayClick(key));
     container.appendChild(cell);
   }
