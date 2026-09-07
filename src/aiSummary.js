@@ -1,5 +1,6 @@
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-5";
+const ANTHROPIC_MODEL = "claude-sonnet-5";
+const OLLAMA_HOST = process.env.OLLAMA_HOST || "http://localhost:11434";
 
 function formatEntryLine(entry) {
   const parts = [];
@@ -41,17 +42,8 @@ Daily log:
 ${dailyLog}`;
 }
 
-/**
- * Calls the Anthropic API to generate the summary. Requires ANTHROPIC_API_KEY;
- * throws a clear error if it's unset so the caller can surface that to the UI.
- */
-export async function generateAiSummary(monthLabel, entries, narrative) {
+async function callAnthropic(prompt) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not set on the server — AI summaries are disabled.");
-  }
-
-  const prompt = buildPrompt(monthLabel, entries, narrative);
   const res = await fetch(ANTHROPIC_URL, {
     method: "POST",
     headers: {
@@ -60,7 +52,7 @@ export async function generateAiSummary(monthLabel, entries, narrative) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: ANTHROPIC_MODEL,
       max_tokens: 700,
       messages: [{ role: "user", content: prompt }],
     }),
@@ -75,4 +67,57 @@ export async function generateAiSummary(monthLabel, entries, narrative) {
   const text = (data.content?.[0]?.text ?? "").trim();
   if (!text) throw new Error("AI summary response was empty");
   return text;
+}
+
+/** Free, local, no API key — talks to a locally-running Ollama server. */
+async function callOllama(prompt) {
+  const model = process.env.OLLAMA_MODEL;
+  let res;
+  try {
+    res = await fetch(`${OLLAMA_HOST}/api/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        stream: false,
+      }),
+    });
+  } catch (err) {
+    throw new Error(
+      `Could not reach Ollama at ${OLLAMA_HOST} — is it running? Start it with \`ollama serve\` (or open the Ollama app). ${err.message}`
+    );
+  }
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `Ollama request failed: ${res.status} ${body.slice(0, 200)} — is model "${model}" pulled? Try: ollama pull ${model}`
+    );
+  }
+
+  const data = await res.json();
+  const text = (data.message?.content ?? "").trim();
+  if (!text) throw new Error("Ollama response was empty");
+  return text;
+}
+
+/**
+ * Generates the summary via whichever provider is configured. Set
+ * OLLAMA_MODEL to use a free local model via Ollama (no key, no network,
+ * notes never leave the machine); otherwise falls back to the Anthropic API
+ * if ANTHROPIC_API_KEY is set. Throws a clear error if neither is configured.
+ */
+export async function generateAiSummary(monthLabel, entries, narrative) {
+  const prompt = buildPrompt(monthLabel, entries, narrative);
+
+  if (process.env.OLLAMA_MODEL) {
+    return callOllama(prompt);
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    return callAnthropic(prompt);
+  }
+  throw new Error(
+    'No AI provider configured — set OLLAMA_MODEL (free, local, e.g. "llama3.2") or ANTHROPIC_API_KEY. See README.'
+  );
 }

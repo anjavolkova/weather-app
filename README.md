@@ -235,15 +235,49 @@ month instead of a trailing 30 days.
 
 Each month also has an **AI Summary** — a richer, natural-language recap
 that (unlike the deterministic narrative) actually reads the notes rather
-than just counting words in them, written by Claude via the Anthropic API.
-It's handed the same computed stats and observations the narrative already
-shows (so it isn't asked to redo — or get wrong — any of the math) plus the
-full daily log including your notes, and told explicitly to stay grounded
-in that data rather than invent anything.
+than just counting words in them. It's handed the same computed stats and
+observations the narrative already shows (so it isn't asked to redo — or
+get wrong — any of the math) plus the full daily log including your notes,
+and told explicitly to stay grounded in that data rather than invent
+anything.
 
-This requires `ANTHROPIC_API_KEY` to be set in the server's environment.
-Without it, clicking **Generate AI summary** shows a clear "not set" error
-instead of a summary. With it set:
+It needs an LLM to write the prose, so pick one of two ways to provide it:
+
+**Option A — Ollama, free and local (recommended).** Runs entirely on your
+own machine: no API key, no account, no cost, and your notes never leave
+your computer.
+
+```bash
+brew install ollama       # or download from https://ollama.com
+ollama pull llama3.2      # ~2GB, one-time download
+```
+
+The Ollama app runs its server automatically in the background once
+installed (or start it manually with `ollama serve`). Then set:
+
+```bash
+export OLLAMA_MODEL=llama3.2
+```
+
+Quality is decent but noticeably more modest than a hosted model — fine
+for this. Try a bigger pulled model (e.g. `llama3.1` or `mistral`) if you
+want better prose and don't mind the extra download/RAM.
+
+**Option B — Anthropic API (Claude), hosted.** Higher-quality prose, but
+costs money per generation (billed separately from any Claude.ai
+subscription — this is pay-as-you-go API usage) and your notes are sent to
+Anthropic's servers.
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Get a key at [console.anthropic.com](https://console.anthropic.com/).
+
+**If `OLLAMA_MODEL` is set, it's used** (Ollama takes precedence); otherwise
+it falls back to `ANTHROPIC_API_KEY` if that's set. With neither set,
+clicking **Generate AI summary** shows a clear "no provider configured"
+error instead of a summary.
 
 - Click **Generate AI summary** on any month's Archive page to generate one
   on demand (or **Regenerate** to replace an existing one).
@@ -251,7 +285,8 @@ instead of a summary. With it set:
   continuously** above), a month's summary is also generated automatically,
   once, shortly after that month ends — no button required. It's cached in
   `data/monthly-summaries.json`, so it's never silently regenerated (and
-  never silently costs another API call) just from viewing the page.
+  never silently costs another API call, if using the paid option) just
+  from viewing the page.
 
 ## Project layout
 
@@ -265,7 +300,7 @@ src/reading.js           Orchestrates a live fetch: pressure + Kp + trend + aler
 src/trend.js             Pressure trend computation
 src/stats.js             Pearson correlation, fog-by-trend, chart series, month grouping
 src/narrative.js         Generated-text "wrapped" summary from computed stats + notes
-src/aiSummary.js         Claude-generated monthly summary (prompt + API call)
+src/aiSummary.js         AI-generated monthly summary (prompt + Ollama/Anthropic call)
 src/notify.js            Alert thresholds + desktop notification
 src/csv.js               CSV export
 src/scheduler.js         In-process daily auto-fetch + monthly AI summary (node-cron)
@@ -289,7 +324,9 @@ npm test
 |---------------------|-------------------------------------------------------|-------------------|
 | `PORT`               | HTTP port                                             | `3000`            |
 | `AUTO_FETCH_CRON`    | Cron expression for the in-process daily fetch, or `off` | `0 7 * * *`     |
-| `ANTHROPIC_API_KEY`  | Enables the LLM fallback if the weather/Kp APIs are unreachable, and the Archive tab's AI monthly summaries | unset |
+| `ANTHROPIC_API_KEY`  | Enables the LLM fallback if the weather/Kp APIs are unreachable, and AI monthly summaries (used only if `OLLAMA_MODEL` is unset) | unset |
+| `OLLAMA_MODEL`       | Enables AI monthly summaries via a free local Ollama model (e.g. `llama3.2`); takes precedence over `ANTHROPIC_API_KEY` | unset |
+| `OLLAMA_HOST`        | Where to reach the Ollama server                       | `http://localhost:11434` |
 | `DATA_DIR`           | Where `entries.json`/`config.json` are stored          | `./data`          |
 
 ## Design

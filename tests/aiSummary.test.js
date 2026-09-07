@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildPrompt } from "../src/aiSummary.js";
+import { buildPrompt, generateAiSummary } from "../src/aiSummary.js";
 
 const narrative = {
   stats: [
@@ -36,4 +36,17 @@ test("buildPrompt: handles a day with no notes and a day with no readings", () =
   const prompt = buildPrompt("August 2026", entries, narrative);
   assert.match(prompt, /2026-08-01: fog 2\/5$/m);
   assert.match(prompt, /2026-08-02: no readings logged — notes: "Just tired"/);
+});
+
+test("generateAiSummary: throws a clear error when no provider is configured", async () => {
+  const prevOllama = process.env.OLLAMA_MODEL;
+  const prevAnthropic = process.env.ANTHROPIC_API_KEY;
+  delete process.env.OLLAMA_MODEL;
+  delete process.env.ANTHROPIC_API_KEY;
+  try {
+    await assert.rejects(() => generateAiSummary("August 2026", [], narrative), /No AI provider configured/);
+  } finally {
+    if (prevOllama !== undefined) process.env.OLLAMA_MODEL = prevOllama;
+    if (prevAnthropic !== undefined) process.env.ANTHROPIC_API_KEY = prevAnthropic;
+  }
 });
