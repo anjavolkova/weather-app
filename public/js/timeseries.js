@@ -8,10 +8,17 @@
 (function () {
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-const SURFACE = "#171e28";
-const GRID_COLOR = "#2a3441";
-const TEXT_MUTED = "#8a93a3";
-const TEXT_PRIMARY = "#e9e4d8";
+// SVG attributes are drawn once as literal colors, not read live from CSS,
+// so re-derive them from the current theme at render time.
+function themeColors() {
+  const light = document.documentElement.dataset.theme === "light";
+  return {
+    surface: light ? "#fbf8f1" : "#171e28",
+    grid: light ? "#ddd0ac" : "#2a3441",
+    muted: light ? "#7d735c" : "#8a93a3",
+    text: light ? "#2a2416" : "#e9e4d8",
+  };
+}
 
 const VB_WIDTH = 880;
 const PAD_LEFT = 36;
@@ -72,6 +79,7 @@ function buildLegend(container, lines) {
  */
 function renderTimeSeriesChart(svg, options) {
   const { series, lines, yDomain, yTicks, decimals = 1, unit = "", threshold, legendEl, height = 190 } = options;
+  const colors = themeColors();
 
   buildLegend(legendEl, lines);
   svg.innerHTML = "";
@@ -90,7 +98,7 @@ function renderTimeSeriesChart(svg, options) {
     const msg = el("text", {
       x: PAD_LEFT,
       y: PAD_TOP + plotH / 2,
-      fill: TEXT_MUTED,
+      fill: colors.muted,
       style: "font-size: 12px;",
     });
     msg.textContent = "No data logged yet";
@@ -102,13 +110,13 @@ function renderTimeSeriesChart(svg, options) {
   for (const tick of yTicks) {
     const y = yFor(tick);
     svg.appendChild(
-      el("line", { x1: PAD_LEFT, y1: y, x2: PAD_LEFT + plotW, y2: y, stroke: GRID_COLOR, "stroke-width": 1 })
+      el("line", { x1: PAD_LEFT, y1: y, x2: PAD_LEFT + plotW, y2: y, stroke: colors.grid, "stroke-width": 1 })
     );
     const label = el("text", {
       x: PAD_LEFT - 8,
       y: y + 3,
       "text-anchor": "end",
-      fill: TEXT_MUTED,
+      fill: colors.muted,
       style: "font-size: 10px;",
     });
     label.textContent = tick;
@@ -148,7 +156,7 @@ function renderTimeSeriesChart(svg, options) {
       x: xFor(i),
       y: height - 6,
       "text-anchor": "middle",
-      fill: TEXT_MUTED,
+      fill: colors.muted,
       style: "font-size: 10px;",
     });
     label.textContent = point.date.slice(5);
@@ -186,7 +194,7 @@ function renderTimeSeriesChart(svg, options) {
       );
     }
     if (lastPoint) {
-      svg.appendChild(el("circle", { cx: lastPoint.x, cy: lastPoint.y, r: 6.5, fill: SURFACE }));
+      svg.appendChild(el("circle", { cx: lastPoint.x, cy: lastPoint.y, r: 6.5, fill: colors.surface }));
       svg.appendChild(el("circle", { cx: lastPoint.x, cy: lastPoint.y, r: 4.5, fill: line.color }));
       endPoints.push({ line, x: lastPoint.x, y: lastPoint.y, labelY: lastPoint.y, v: lastPoint.v });
     }
@@ -230,17 +238,17 @@ function renderTimeSeriesChart(svg, options) {
     const endLabel = el("text", {
       x: ep.x + 21,
       y: ep.labelY + 3.5,
-      fill: TEXT_PRIMARY,
+      fill: colors.text,
       style: "font-size: 11px; font-variant-numeric: tabular-nums;",
     });
     endLabel.textContent = `${fmt(ep.v, decimals)}${unit}`;
     svg.appendChild(endLabel);
   }
 
-  attachHover(svg, { series, lines, xFor, plotTop: PAD_TOP, plotHeight: plotH, plotLeft: PAD_LEFT, plotWidth: plotW, decimals, unit });
+  attachHover(svg, { series, lines, xFor, plotTop: PAD_TOP, plotHeight: plotH, plotLeft: PAD_LEFT, plotWidth: plotW, decimals, unit, colors });
 }
 
-function attachHover(svg, { series, lines, xFor, plotTop, plotHeight, plotLeft, plotWidth, decimals, unit }) {
+function attachHover(svg, { series, lines, xFor, plotTop, plotHeight, plotLeft, plotWidth, decimals, unit, colors }) {
   const n = series.length;
   if (n === 0) return;
 
@@ -249,7 +257,7 @@ function attachHover(svg, { series, lines, xFor, plotTop, plotHeight, plotLeft, 
     y1: plotTop,
     x2: 0,
     y2: plotTop + plotHeight,
-    stroke: TEXT_MUTED,
+    stroke: colors.muted,
     "stroke-width": 1,
     opacity: 0,
   });

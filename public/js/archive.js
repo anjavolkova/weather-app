@@ -3,6 +3,7 @@
 // Patterns tab, via shared.js) plus an AI-generated summary. Generation is
 // fully automatic — see src/scheduler.js — there's no button here; this
 // just displays whatever's already cached, or explains why nothing's there yet.
+let currentArchiveMonth = null;
 
 function showArchiveList() {
   document.getElementById("archive-list-view").hidden = false;
@@ -48,8 +49,17 @@ async function loadArchiveList() {
 }
 
 async function openArchiveMonth(month) {
+  currentArchiveMonth = month;
   showArchiveDetail();
   await loadArchiveDetail(month);
+}
+
+// Called from app.js's theme toggle: the archive charts bake in theme
+// colors at draw time, so re-render whichever month is currently open.
+function reloadArchiveDetailForTheme() {
+  if (!document.getElementById("archive-detail-view").hidden && currentArchiveMonth) {
+    loadArchiveDetail(currentArchiveMonth);
+  }
 }
 
 async function loadArchiveDetail(month) {

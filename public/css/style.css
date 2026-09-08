@@ -11,6 +11,23 @@
   --clear: #6fa87e;
 }
 
+/* Day mode: same instrument-panel character (brass accents, serif italic
+   headings) on a warm parchment ground instead of ink. Same specificity as
+   :root (both match <html>), so source order — this block coming after —
+   is what lets it win when [data-theme="light"] is set. */
+[data-theme="light"] {
+  --ink: #f3ecdb;
+  --panel: #fbf8f1;
+  --panel-raised: #eee5cf;
+  --line: #ddd0ac;
+  --brass: #a87d28;
+  --brass-dim: #cbae72;
+  --text: #2a2416;
+  --muted: #7d735c;
+  --rust: #b1503f;
+  --clear: #3f7a52;
+}
+
 /* Belt-and-suspenders: guarantees [hidden] always wins even when another
    rule of equal specificity (e.g. a flex/grid display on the same element)
    would otherwise beat the UA stylesheet's default [hidden]{display:none}. */

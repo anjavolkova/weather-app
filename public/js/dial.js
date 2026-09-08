@@ -9,6 +9,18 @@ const FOG_COLORS = {
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
+// SVG attributes are drawn once as literal colors, not read live from CSS,
+// so re-derive them from the current theme at render time.
+function themeColors() {
+  const light = document.documentElement.dataset.theme === "light";
+  return {
+    muted: light ? "#7d735c" : "#8a93a3",
+    text: light ? "#2a2416" : "#e9e4d8",
+    panel: light ? "#fbf8f1" : "#171e28",
+    brass: light ? "#a87d28" : "#c69a4e",
+  };
+}
+
 function polarPoint(cx, cy, r, angleDeg) {
   const rad = (angleDeg * Math.PI) / 180;
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
@@ -31,6 +43,7 @@ function renderBarometer(svg, fogValue) {
   const cy = 140;
   const r = 96;
   const bandWidth = 20;
+  const colors = themeColors();
 
   svg.innerHTML = "";
 
@@ -49,7 +62,7 @@ function renderBarometer(svg, fogValue) {
     svg.appendChild(path);
   }
 
-  const labelStyle = 'font-family: Georgia, serif; font-size: 9px; fill: #8a93a3; text-transform: uppercase; letter-spacing: 0.05em;';
+  const labelStyle = `font-family: Georgia, serif; font-size: 9px; fill: ${colors.muted}; text-transform: uppercase; letter-spacing: 0.05em;`;
   const clearLabel = el("text", { x: cx - r - 6, y: cy + 16, style: labelStyle, "text-anchor": "middle" });
   clearLabel.textContent = "Clear";
   svg.appendChild(clearLabel);
@@ -66,21 +79,21 @@ function renderBarometer(svg, fogValue) {
         y1: cy,
         x2: tip.x,
         y2: tip.y,
-        stroke: "#e9e4d8",
+        stroke: colors.text,
         "stroke-width": 2.5,
         "stroke-linecap": "round",
       })
     );
   }
 
-  svg.appendChild(el("circle", { cx, cy, r: 7, fill: "#e9e4d8" }));
-  svg.appendChild(el("circle", { cx, cy, r: 3, fill: "#10151c" }));
+  svg.appendChild(el("circle", { cx, cy, r: 7, fill: colors.text }));
+  svg.appendChild(el("circle", { cx, cy, r: 3, fill: colors.panel }));
 
   const valueText = el("text", {
     x: cx,
     y: cy - 22,
     "text-anchor": "middle",
-    style: "font-family: Georgia, serif; font-style: italic; font-size: 22px; fill: #c69a4e;",
+    style: `font-family: Georgia, serif; font-style: italic; font-size: 22px; fill: ${colors.brass};`,
   });
   valueText.textContent = typeof fogValue === "number" ? fogValue : "–";
   svg.appendChild(valueText);

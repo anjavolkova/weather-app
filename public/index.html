@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Symptom &amp; Weather Tracker</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <script>
+    // Set before first paint so day mode doesn't flash dark, then light.
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
@@ -19,6 +23,7 @@
       <button class="tab" data-view="archive">Archive</button>
     </nav>
     <div class="topbar-right">
+      <button id="theme-toggle" class="ghost-btn" title="Toggle day/night mode">☀️</button>
       <button id="location-btn" class="ghost-btn" title="Change location">📍 <span id="location-label">…</span></button>
       <a id="export-link" class="ghost-btn" href="/api/export.csv" download>Export CSV</a>
     </div>

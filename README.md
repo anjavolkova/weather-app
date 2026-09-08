@@ -337,6 +337,10 @@ npm test
 
 ## Design
 
-Dark, instrument-panel feel: deep ink background, brass accent for primary
-actions, an SVG barometer dial for the day's fog reading. Serif italic
-headings, sans-serif body/data.
+Instrument-panel feel: brass accent for primary actions, an SVG barometer
+dial for the day's fog reading, serif italic headings, sans-serif body/data
+— on either an ink-dark or a warm-parchment ground. Defaults to day mode;
+click the ☀️/🌙 button in the top bar to switch, or it follows whatever you
+last picked (saved per-browser). Data colors (fog severity, pressure
+buckets on the Month calendar) stay the same in both modes — only the
+chrome (backgrounds, text, borders) re-themes.

@@ -33,6 +33,40 @@ function showAlerts(alerts) {
   alertBanner.hidden = false;
 }
 
+// ---------- Day/night theme ----------
+// The <html data-theme> attribute is set before first paint by an inline
+// script in index.html (reads localStorage, defaults to "light") so there's
+// no flash of the wrong theme. This just wires the toggle button and
+// re-renders the SVG charts, which bake in theme colors at draw time rather
+// than reading CSS custom properties live.
+const themeToggleBtn = document.getElementById("theme-toggle");
+
+function applyThemeIcon() {
+  themeToggleBtn.textContent = document.documentElement.dataset.theme === "light" ? "☀️" : "🌙";
+}
+
+function rerenderChartsForTheme() {
+  if (document.getElementById("view-day").classList.contains("active")) {
+    renderBarometer(barometerSvg, currentEntry.fog ?? null);
+  }
+  if (document.getElementById("view-patterns").classList.contains("active")) {
+    loadPatterns();
+  }
+  if (document.getElementById("view-archive").classList.contains("active")) {
+    reloadArchiveDetailForTheme();
+  }
+}
+
+themeToggleBtn.addEventListener("click", () => {
+  const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("theme", next);
+  applyThemeIcon();
+  rerenderChartsForTheme();
+});
+
+applyThemeIcon();
+
 // ---------- Tabs ----------
 document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => switchView(btn.dataset.view));
