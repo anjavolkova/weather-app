@@ -97,19 +97,20 @@ you want help setting one of those up; it's a bigger change than the above.
    SWPC) for your configured location as part of the same save, and derives
    the pressure trend (rising/falling/stable) by comparing to the most
    recent prior reading — it isn't guessed and isn't manually set.
-3. Check the **Month** tab for a calendar colored by fog severity, or
-   **Patterns** for a "wrapped"-style summary of the last 30 days: a
-   generated-text readout of what stands out (top correlation, pressure-trend
-   comparison, storm days, best/worst day, and — once you have a handful of
-   notes — which words come up most in them and how fog compares on days
-   that mention the top one), three stacked time-series charts sharing one
-   date axis (pressure, Kp-index, and fog/energy/mood/sleep — each on its
-   own y-scale, hover for exact values), and the correlation cards, grouped
-   into **Weather** (pressure, Kp-index) and **You** (energy, sleep, mood).
-4. Once you've logged into a second month, check the **Archive** tab for
+3. Check the **Month** tab for a calendar whose background reflects that
+   day's barometric pressure (green = high/fair, rust = low/stormy), with
+   fog and energy as plain numbers and a Kp-index badge (⚡ when it crosses
+   the geomagnetic storm threshold) on each day.
+4. Check **Patterns** for the last 30 days: stat tiles (days logged,
+   average fog, foggiest day, storm days), three stacked time-series charts
+   sharing one date axis (pressure, Kp-index, and fog/energy/mood/sleep —
+   each on its own y-scale, hover for exact values), and the correlation
+   cards, grouped into **Weather** (pressure, Kp-index) and **You** (energy,
+   sleep, mood).
+5. Once you've logged into a second month, check the **Archive** tab for
    the same patterns detail scoped to each past month individually, plus an
-   optional AI-generated summary per month — see **Archive & AI monthly
-   summary** below.
+   AI-generated summary per month — see **Archive & AI monthly summary**
+   below.
 
 ## APIs used (both free, no key required)
 
@@ -206,40 +207,38 @@ One JSON record per date, stored in `data/entries.json`:
 ## Correlation analysis
 
 Pearson's r between fog and each of pressure / Kp-index / energy / sleep /
-mood, computed across days that have both values logged. Requires at least 5
-paired data points to display — treat it as descriptive, not causal. The
-Patterns tab's narrative surfaces whichever of these r values is strongest,
-in plain language, alongside a few other generated observations (all
-computed from your logged numbers, never guessed).
+mood, computed across days that have both values logged, shown as the
+correlation cards on the Patterns and Archive pages. Requires at least 5
+paired data points to display — treat it as descriptive, not causal.
 
-## Notes analysis
+## Notes analysis (feeds the AI summary, not shown directly)
 
-The free-text notes on each day's entry feed into the Patterns narrative
-too, via simple word-frequency counting — not an LLM read of the prose, so
-it's instant and never invents what a note said. Once you have at least 5
-days with notes, it surfaces the words you mention most often (skipping
-common filler words like "the"/"and"/"was"), and — once there's a large
-enough split — compares average fog on days that mention the top word
-against days that don't (e.g. *"Days your notes mention 'headache' average
-fog 4.2/5, versus 2.6/5 on days that don't"*). A word only counts once per
-day no matter how many times it appears in that day's note.
+The free-text notes on each day's entry are analyzed via simple
+word-frequency counting — not an LLM read of the prose, so it's instant and
+never invents what a note said. Once there are at least 5 days with notes,
+it identifies the words mentioned most often (skipping common filler words
+like "the"/"and"/"was") and, once there's a large enough split, compares
+average fog on days that mention the top word against days that don't.
+This — along with the correlations above, a pressure-trend comparison, and
+the storm-day count — is computed purely to hand to the **AI Summary**
+below as grounding context; none of it is displayed as its own text block
+in the UI, only the AI summary and the raw stat/correlation numbers are.
 
 ## Archive & AI monthly summary
 
 The **Archive** tab lists every calendar month you've logged (it appears
 once you've logged into a second month — a single month in progress isn't
 much of an archive yet). Click a month to see its own full patterns
-detail: the same generated-text "wrapped" narrative, correlation cards, and
-three time-series charts as the Patterns tab, just scoped to that specific
-month instead of a trailing 30 days.
+detail: stat tiles, correlation cards, and the three time-series charts,
+scoped to that specific month instead of a trailing 30 days.
 
-Each month also has an **AI Summary** — a richer, natural-language recap
-that (unlike the deterministic narrative) actually reads the notes rather
-than just counting words in them. It's handed the same computed stats and
-observations the narrative already shows (so it isn't asked to redo — or
-get wrong — any of the math) plus the full daily log including your notes,
-and told explicitly to stay grounded in that data rather than invent
-anything.
+Each month also has an **AI Summary** — a natural-language recap that
+actually reads the notes rather than just counting words in them. It's
+handed the deterministic analysis described above as grounding context (so
+it isn't asked to redo — or get wrong — any of the math) plus the full
+daily log including your notes, and told explicitly to stay grounded in
+that data rather than invent anything. It's the only generated prose in
+the app now — there's no separate "wrapped" text summary alongside it.
 
 It needs an LLM to write the prose, so pick one of two ways to provide it:
 
@@ -306,7 +305,7 @@ src/llmFallback.js       LLM fallback when the above are unreachable
 src/reading.js           Orchestrates a live fetch: pressure + Kp + trend + alerts
 src/trend.js             Pressure trend computation
 src/stats.js             Pearson correlation, fog-by-trend, chart series, month grouping
-src/narrative.js         Generated-text "wrapped" summary from computed stats + notes
+src/narrative.js         Deterministic stats/correlations/notes analysis — feeds the AI summary prompt and the stat tiles
 src/aiSummary.js         AI-generated monthly summary (prompt + Ollama/Anthropic call)
 src/notify.js            Alert thresholds + desktop notification
 src/csv.js               CSV export

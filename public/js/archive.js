@@ -56,9 +56,8 @@ async function loadArchiveDetail(month) {
   const res = await fetch(`/api/months/${month}`);
   const data = await res.json();
 
-  document.getElementById("archive-detail-headline").textContent = `${data.label} — ${data.narrative.headline}`;
+  document.getElementById("archive-detail-headline").textContent = data.label;
   renderStatTiles(document.getElementById("archive-detail-stats"), data.narrative.stats);
-  renderParagraphs(document.getElementById("archive-detail-paragraphs"), data.narrative.paragraphs);
 
   renderCorrelationGroups(
     document.getElementById("archive-correlations-weather"),

@@ -161,9 +161,7 @@ async function loadPatterns() {
   const res = await fetch("/api/patterns");
   const data = await res.json();
 
-  document.getElementById("wrapped-headline").textContent = data.narrative.headline;
   renderStatTiles(document.getElementById("wrapped-stats"), data.narrative.stats);
-  renderParagraphs(document.getElementById("wrapped-paragraphs"), data.narrative.paragraphs);
 
   renderPatternCharts({
     pressureEl: document.getElementById("chart-pressure"),

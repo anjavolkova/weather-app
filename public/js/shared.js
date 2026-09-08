@@ -45,15 +45,6 @@ function renderStatTiles(container, stats) {
   }
 }
 
-function renderParagraphs(container, paragraphs) {
-  container.innerHTML = "";
-  for (const paragraph of paragraphs) {
-    const p = document.createElement("p");
-    p.textContent = paragraph;
-    container.appendChild(p);
-  }
-}
-
 function renderCorrelationGroups(weatherContainer, wellbeingContainer, correlations) {
   weatherContainer.innerHTML = "";
   wellbeingContainer.innerHTML = "";

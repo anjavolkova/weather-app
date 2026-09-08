@@ -1,15 +1,23 @@
-// Month calendar grid. Cells are colored by that day's fog severity and show
-// a few other logged values at a glance (pressure trend, mood) so a pattern
-// across the month is visible without opening each day.
-const FOG_COLORS_CAL = {
-  1: "#6FA87E",
-  2: "#9AAE72",
-  3: "#C69A4E",
-  4: "#C4824D",
-  5: "#B1503F",
-};
+// Month calendar grid. Cells are colored by that day's barometric pressure
+// (green = high/fair, rust = low/stormy — same ramp used for fog severity
+// elsewhere, so the color language stays consistent app-wide) and show fog,
+// energy, and geomagnetic activity numerically so a pattern across the month
+// is visible without opening each day.
+const STORM_KP = 5;
 
-const TREND_ARROWS = { rising: "↑", falling: "↓", stable: "→", unsure: "·" };
+// Low pressure -> rust (unsettled), high pressure -> green (fair). Buckets
+// centered loosely on standard sea-level pressure (1013.25 hPa).
+const PRESSURE_BUCKETS = [
+  { max: 1000, color: "#B1503F" },
+  { max: 1008, color: "#C4824D" },
+  { max: 1016, color: "#C69A4E" },
+  { max: 1024, color: "#9AAE72" },
+  { max: Infinity, color: "#6FA87E" },
+];
+
+function pressureColor(hpa) {
+  return PRESSURE_BUCKETS.find((bucket) => hpa <= bucket.max).color;
+}
 
 function toDateKey(year, month, day) {
   const mm = String(month + 1).padStart(2, "0");
@@ -22,10 +30,11 @@ function buildDayCell(day, entry, isToday) {
   cell.className = "day-cell";
   if (isToday) cell.classList.add("today");
 
-  const hasFog = entry && typeof entry.fog === "number";
-  if (hasFog) {
-    cell.style.background = FOG_COLORS_CAL[Math.round(entry.fog)];
+  const hasPressure = entry && typeof entry.pressureHpa === "number";
+  if (hasPressure) {
+    cell.style.background = pressureColor(entry.pressureHpa);
     cell.classList.add("has-data");
+    cell.title = `Pressure ${entry.pressureHpa} hPa`;
   }
 
   const top = document.createElement("div");
@@ -34,33 +43,31 @@ function buildDayCell(day, entry, isToday) {
   dayNum.className = "day-num";
   dayNum.textContent = day;
   top.appendChild(dayNum);
-  if (hasFog) {
-    const fogBadge = document.createElement("span");
-    fogBadge.className = "day-fog-badge";
-    fogBadge.textContent = `F${entry.fog}`;
-    fogBadge.title = `Fog ${entry.fog}/5`;
-    top.appendChild(fogBadge);
+
+  if (entry && typeof entry.kpIndex === "number") {
+    const isStorm = entry.kpIndex >= STORM_KP;
+    const kpBadge = document.createElement("span");
+    kpBadge.className = "day-kp-badge" + (isStorm ? " storm" : "");
+    kpBadge.textContent = `${isStorm ? "⚡" : ""}K${entry.kpIndex}`;
+    kpBadge.title = `Kp-index ${entry.kpIndex}${isStorm ? " — geomagnetic storm" : ""}`;
+    top.appendChild(kpBadge);
   }
   cell.appendChild(top);
 
-  if (entry && (typeof entry.pressureHpa === "number" || typeof entry.mood === "number")) {
+  if (entry && (typeof entry.fog === "number" || typeof entry.energy === "number")) {
     const bottom = document.createElement("div");
     bottom.className = "day-cell-bottom";
-
-    if (typeof entry.pressureHpa === "number") {
-      const pressure = document.createElement("span");
-      pressure.className = "day-pressure";
-      const arrow = TREND_ARROWS[entry.trend] || "";
-      pressure.textContent = `${arrow}${Math.round(entry.pressureHpa)}`;
-      pressure.title = `Pressure ${entry.pressureHpa} hPa, ${entry.trend || "unsure"}`;
-      bottom.appendChild(pressure);
+    if (typeof entry.fog === "number") {
+      const fog = document.createElement("span");
+      fog.textContent = `F${entry.fog}`;
+      fog.title = `Fog ${entry.fog}/5`;
+      bottom.appendChild(fog);
     }
-    if (typeof entry.mood === "number") {
-      const mood = document.createElement("span");
-      mood.className = "day-mood";
-      mood.textContent = `M${entry.mood}`;
-      mood.title = `Mood ${entry.mood}/5`;
-      bottom.appendChild(mood);
+    if (typeof entry.energy === "number") {
+      const energy = document.createElement("span");
+      energy.textContent = `E${entry.energy}`;
+      energy.title = `Energy ${entry.energy}/5`;
+      bottom.appendChild(energy);
     }
     cell.appendChild(bottom);
   }

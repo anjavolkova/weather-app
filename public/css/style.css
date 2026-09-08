@@ -356,12 +356,17 @@ input[type="range"] {
   color: #10151c;
 }
 
-.day-fog-badge {
+.day-kp-badge {
   font-size: 0.62rem;
   font-weight: 700;
   background: rgba(16, 21, 28, 0.18);
   border-radius: 3px;
   padding: 1px 3px;
+}
+
+.day-kp-badge.storm {
+  background: var(--rust);
+  color: #f4e9e4;
 }
 
 .day-cell-bottom {
