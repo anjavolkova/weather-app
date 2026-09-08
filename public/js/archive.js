@@ -1,7 +1,8 @@
 // Archive tab: a list of past calendar months, each opening into a full
 // per-month patterns detail (reusing the same rendering helpers as the
-// Patterns tab, via shared.js) plus an on-demand AI-generated summary.
-let currentArchiveMonth = null;
+// Patterns tab, via shared.js) plus an AI-generated summary. Generation is
+// fully automatic — see src/scheduler.js — there's no button here; this
+// just displays whatever's already cached, or explains why nothing's there yet.
 
 function showArchiveList() {
   document.getElementById("archive-list-view").hidden = false;
@@ -47,7 +48,6 @@ async function loadArchiveList() {
 }
 
 async function openArchiveMonth(month) {
-  currentArchiveMonth = month;
   showArchiveDetail();
   await loadArchiveDetail(month);
 }
@@ -79,10 +79,7 @@ async function loadArchiveDetail(month) {
 
 function renderAiSummarySection(data) {
   const content = document.getElementById("archive-ai-summary-content");
-  const btn = document.getElementById("archive-generate-ai");
-  const status = document.getElementById("archive-ai-status");
   content.innerHTML = "";
-  status.textContent = "";
 
   if (data.aiSummary) {
     for (const para of data.aiSummary.summary.split(/\n+/).map((p) => p.trim()).filter(Boolean)) {
@@ -94,33 +91,20 @@ function renderAiSummarySection(data) {
     meta.className = "hint";
     meta.textContent = `Generated ${new Date(data.aiSummary.generatedAt).toLocaleString()}`;
     content.appendChild(meta);
-    btn.textContent = "Regenerate";
-  } else {
-    const placeholder = document.createElement("p");
-    placeholder.className = "hint";
-    placeholder.textContent = data.entryCount === 0 ? "No entries logged this month." : "No summary yet.";
-    content.appendChild(placeholder);
-    btn.textContent = data.isComplete ? "Generate AI summary" : "Generate summary so far";
+    return;
   }
-  btn.disabled = data.entryCount === 0;
+
+  const placeholder = document.createElement("p");
+  placeholder.className = "hint";
+  if (data.entryCount === 0) {
+    placeholder.textContent = "No entries logged this month.";
+  } else if (!data.isComplete) {
+    placeholder.textContent = "This month is still in progress. Its AI summary is generated automatically once the month ends.";
+  } else {
+    placeholder.textContent =
+      "Not generated yet. This happens automatically the next time the server is running with an AI provider (Ollama or Anthropic) configured — see the README.";
+  }
+  content.appendChild(placeholder);
 }
 
 document.getElementById("archive-back").addEventListener("click", showArchiveList);
-
-document.getElementById("archive-generate-ai").addEventListener("click", async () => {
-  if (!currentArchiveMonth) return;
-  const btn = document.getElementById("archive-generate-ai");
-  const status = document.getElementById("archive-ai-status");
-  btn.disabled = true;
-  status.textContent = "Generating — this calls the Anthropic API and can take a few seconds…";
-  try {
-    const res = await fetch(`/api/months/${currentArchiveMonth}/ai-summary`, { method: "POST" });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to generate summary");
-    status.textContent = "";
-    await loadArchiveDetail(currentArchiveMonth);
-  } catch (err) {
-    status.textContent = `Error: ${err.message}`;
-    btn.disabled = false;
-  }
-});

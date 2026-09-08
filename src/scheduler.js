@@ -1,44 +1,46 @@
 import cron from "node-cron";
 import { fetchLiveReading, todayIso } from "./reading.js";
 import { getAllEntries, getMonthlySummary, saveMonthlySummary } from "./store.js";
-import { entriesForMonth, monthLabel } from "./stats.js";
+import { entriesForMonth, monthLabel, listMonths } from "./stats.js";
 import { generateNarrative } from "./narrative.js";
 import { generateAiSummary } from "./aiSummary.js";
 
 const MIN_ENTRIES_FOR_AUTO_SUMMARY = 5;
 
-function previousMonthKey(dateIso) {
-  const [y, m] = dateIso.split("-").map(Number);
-  const d = new Date(y, m - 2, 1); // JS Date months are 0-based, so m-2 lands on the prior month
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
 /**
- * Once a new month has started, auto-generates and caches the AI summary for
- * the month that just ended — the "at the end of the month" summary happens
- * on its own as long as the server is kept running, no button required.
- * A no-op every day except when a summary is genuinely missing, so it's
- * cheap to check unconditionally on each daily tick.
+ * Generates and caches the AI summary for any completed past month that's
+ * missing one (and has enough entries) — not just the month that just
+ * ended, so a month is never permanently skipped just because the server
+ * happened to be off when it ended. Checked on every daily tick; a no-op
+ * once everything eligible is already cached. Provider selection (Ollama vs
+ * Anthropic vs neither) is entirely generateAiSummary()'s job — this never
+ * duplicates that check, so it can't drift out of sync with it.
  */
-async function maybeGeneratePreviousMonthSummary() {
-  if (!process.env.ANTHROPIC_API_KEY) return;
-  const prevMonth = previousMonthKey(todayIso());
-  if (getMonthlySummary(prevMonth)) return;
+export async function generateMissingMonthlySummaries() {
+  const allEntries = getAllEntries();
+  const currentMonth = todayIso().slice(0, 7);
 
-  const entries = entriesForMonth(getAllEntries(), prevMonth);
-  if (entries.length < MIN_ENTRIES_FOR_AUTO_SUMMARY) return;
+  for (const { month, count } of listMonths(allEntries)) {
+    if (month >= currentMonth) continue; // skip the in-progress current month
+    if (count < MIN_ENTRIES_FOR_AUTO_SUMMARY) continue;
+    if (getMonthlySummary(month)) continue;
 
-  try {
-    const narrative = generateNarrative(entries);
-    const summary = await generateAiSummary(monthLabel(prevMonth), entries, narrative);
-    saveMonthlySummary(prevMonth, {
-      summary,
-      generatedAt: new Date().toISOString(),
-      entryCountAtGeneration: entries.length,
-    });
-    console.log(`[scheduler] generated AI summary for ${prevMonth}`);
-  } catch (err) {
-    console.error(`[scheduler] AI summary generation failed for ${prevMonth}:`, err.message);
+    const entries = entriesForMonth(allEntries, month);
+    try {
+      const narrative = generateNarrative(entries);
+      const summary = await generateAiSummary(monthLabel(month), entries, narrative);
+      saveMonthlySummary(month, {
+        summary,
+        generatedAt: new Date().toISOString(),
+        entryCountAtGeneration: entries.length,
+      });
+      console.log(`[scheduler] generated AI summary for ${month}`);
+    } catch (err) {
+      console.error(`[scheduler] AI summary generation failed for ${month}:`, err.message);
+      // No provider configured applies to every month equally — one log line
+      // per run is enough, no need to repeat it for each past month.
+      if (/no ai provider configured/i.test(err.message)) break;
+    }
   }
 }
 
@@ -71,7 +73,7 @@ export function startScheduler() {
     } catch (err) {
       console.error(`[scheduler] auto-fetch failed for ${date}:`, err.message);
     }
-    await maybeGeneratePreviousMonthSummary();
+    await generateMissingMonthlySummaries();
   });
   console.log(`[scheduler] daily auto-fetch armed: "${schedule}"`);
 }

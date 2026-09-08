@@ -275,18 +275,25 @@ export ANTHROPIC_API_KEY=sk-ant-...
 Get a key at [console.anthropic.com](https://console.anthropic.com/).
 
 **If `OLLAMA_MODEL` is set, it's used** (Ollama takes precedence); otherwise
-it falls back to `ANTHROPIC_API_KEY` if that's set. With neither set,
-clicking **Generate AI summary** shows a clear "no provider configured"
-error instead of a summary.
+it falls back to `ANTHROPIC_API_KEY` if that's set.
 
-- Click **Generate AI summary** on any month's Archive page to generate one
-  on demand (or **Regenerate** to replace an existing one).
-- If you're keeping the server running continuously (see **Run it
-  continuously** above), a month's summary is also generated automatically,
-  once, shortly after that month ends — no button required. It's cached in
-  `data/monthly-summaries.json`, so it's never silently regenerated (and
-  never silently costs another API call, if using the paid option) just
-  from viewing the page.
+**Generation is fully automatic — there's no button.** As long as the
+server is kept running continuously (see **Run it continuously** above)
+with one of the two options above configured, each month's summary is
+generated on its own shortly after that month ends. On every daily check
+it also catches up on *any* past month that's missing a summary and has
+enough logged days — not just the one that just ended — so a month is
+never permanently skipped just because the server happened to be off when
+it ended. Each summary is cached in `data/monthly-summaries.json`, so it's
+generated once and never silently redone (or re-billed, on the paid
+option) just from viewing the Archive page.
+
+Until a month has a summary, its Archive page explains why: still in
+progress, not enough days logged, or no AI provider configured. (There's
+also a `POST /api/months/:month/ai-summary` route if you ever want to
+force one on demand from the command line — `curl -X POST
+localhost:3000/api/months/2026-08/ai-summary` — but the UI itself has no
+button for it, by design.)
 
 ## Project layout
 
