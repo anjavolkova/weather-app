@@ -31,6 +31,7 @@ const CORR_LABELS = {
   pressureHpa: "barometric pressure",
   temperatureC: "temperature",
   kpIndex: "Kp-index",
+  rainStorm: "rain/storm conditions",
   energy: "energy",
   sleep: "sleep quality",
   mood: "mood",
@@ -55,6 +56,11 @@ function strengthWord(absR) {
 function describeCorrelation(key, r) {
   const label = CORR_LABELS[key] || key;
   const strength = strengthWord(Math.abs(r));
+  if (key === "rainStorm") {
+    const direction =
+      r >= 0 ? "your fog tends to be worse on rainy or stormy days" : "your fog tends to be worse on dry days";
+    return `Fog shows a ${strength} correlation with ${label} (r = ${r.toFixed(2)}) — ${direction}.`;
+  }
   const direction =
     r >= 0
       ? `your fog tends to rise along with your ${label}`

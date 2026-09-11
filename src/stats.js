@@ -1,3 +1,5 @@
+import { isRainOrStorm } from "./weatherCodes.js";
+
 /** Pearson correlation coefficient between two equal-length numeric arrays. */
 export function pearson(xs, ys) {
   const n = xs.length;
@@ -36,16 +38,23 @@ function pairedValues(entries, keyA, keyB) {
 }
 
 /**
- * Correlation of fog against pressure, temperature, Kp-index, energy,
- * sleep, and mood, each computed across the days that have both values
- * logged. Returns r=null when there aren't enough paired points
- * (< MIN_POINTS_FOR_CORRELATION) to be meaningful.
+ * Correlation of fog against pressure, temperature, Kp-index, rain/storm
+ * conditions, energy, sleep, and mood, each computed across the days that
+ * have both values logged. Returns r=null when there aren't enough paired
+ * points (< MIN_POINTS_FOR_CORRELATION) to be meaningful.
+ *
+ * rainStorm is a derived 0/1 flag (was it raining or stormy that day?), so
+ * correlating fog against it is a point-biserial correlation — same Pearson
+ * math, just a binary input.
  */
 export function fogCorrelations(entries) {
-  const targets = ["pressureHpa", "temperatureC", "kpIndex", "energy", "sleep", "mood"];
+  const withRainStorm = entries.map((e) =>
+    typeof e.weatherCode === "number" ? { ...e, rainStorm: isRainOrStorm(e.weatherCode) ? 1 : 0 } : e
+  );
+  const targets = ["pressureHpa", "temperatureC", "kpIndex", "rainStorm", "energy", "sleep", "mood"];
   const result = {};
   for (const key of targets) {
-    const { xs, ys } = pairedValues(entries, "fog", key);
+    const { xs, ys } = pairedValues(withRainStorm, "fog", key);
     result[key] = {
       r: xs.length >= MIN_POINTS_FOR_CORRELATION ? pearson(xs, ys) : null,
       n: xs.length,

@@ -35,3 +35,12 @@ const WMO_LABELS = {
 export function weatherCodeLabel(code) {
   return WMO_LABELS[code] ?? (typeof code === "number" ? `Unknown (code ${code})` : null);
 }
+
+// Drizzle, rain, rain showers, and thunderstorms — deliberately excludes the
+// snow codes (71-86) since "rain/storm" is about precipitation type, not
+// just any precipitation.
+const RAIN_STORM_CODES = new Set([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99]);
+
+export function isRainOrStorm(code) {
+  return RAIN_STORM_CODES.has(code);
+}

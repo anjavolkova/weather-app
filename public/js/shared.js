@@ -7,12 +7,13 @@ const CORR_LABELS = {
   pressureHpa: "Pressure",
   temperatureC: "Temperature",
   kpIndex: "Kp-index",
+  rainStorm: "Rain/Storm",
   energy: "Energy",
   sleep: "Sleep",
   mood: "Mood",
 };
 
-const WEATHER_CORR_KEYS = new Set(["pressureHpa", "temperatureC", "kpIndex"]);
+const WEATHER_CORR_KEYS = new Set(["pressureHpa", "temperatureC", "kpIndex", "rainStorm"]);
 
 const SYMPTOM_LINES = [
   { key: "fog", label: "Fog", color: "#3987e5" },

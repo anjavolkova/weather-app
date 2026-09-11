@@ -51,6 +51,27 @@ test("fogCorrelations: ignores entries missing either value", () => {
   assert.equal(energy.n, 4);
 });
 
+test("fogCorrelations: derives a rainStorm 0/1 flag from weatherCode and correlates it with fog", () => {
+  const entries = [
+    { date: "2026-01-01", fog: 5, weatherCode: 61 }, // rain
+    { date: "2026-01-02", fog: 1, weatherCode: 0 }, // clear
+    { date: "2026-01-03", fog: 4, weatherCode: 95 }, // thunderstorm
+    { date: "2026-01-04", fog: 2, weatherCode: 1 }, // mostly clear
+    { date: "2026-01-05", fog: 5, weatherCode: 80 }, // rain showers
+    { date: "2026-01-06", fog: 1, weatherCode: 3 }, // overcast, no rain
+  ];
+  const { rainStorm } = fogCorrelations(entries);
+  assert.equal(rainStorm.n, 6);
+  assert.ok(rainStorm.r > 0.5, `expected a fairly strong positive r, got ${rainStorm.r}`);
+});
+
+test("fogCorrelations: rainStorm ignores entries with no weatherCode logged", () => {
+  const entries = makeEntries(6, (i) => ({ fog: i + 1 }));
+  const { rainStorm } = fogCorrelations(entries);
+  assert.equal(rainStorm.n, 0);
+  assert.equal(rainStorm.r, null);
+});
+
 test("avgFogByTrend: groups and averages correctly", () => {
   const entries = [
     { date: "2026-01-01", fog: 2, trend: "rising" },

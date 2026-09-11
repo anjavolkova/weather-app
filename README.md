@@ -106,8 +106,8 @@ you want help setting one of those up; it's a bigger change than the above.
    average fog, foggiest day, storm days), three stacked time-series charts
    sharing one date axis (pressure, Kp-index, and fog/energy/mood/sleep —
    each on its own y-scale, hover for exact values), and the correlation
-   cards, grouped into **Weather** (pressure, Kp-index) and **You** (energy,
-   sleep, mood).
+   cards, grouped into **Weather** (pressure, temperature, Kp-index,
+   rain/storm) and **You** (energy, sleep, mood).
 5. Once you've logged into a second month, check the **Archive** tab for
    the same patterns detail scoped to each past month individually, plus an
    AI-generated summary per month — see **Archive & AI monthly summary**
@@ -240,9 +240,15 @@ auto-fetch/scheduler runs).
 ## Correlation analysis
 
 Pearson's r between fog and each of pressure / temperature / Kp-index /
-energy / sleep / mood, computed across days that have both values logged, shown as the
-correlation cards on the Patterns and Archive pages. Requires at least 5
-paired data points to display — treat it as descriptive, not causal.
+rain-or-storm / energy / sleep / mood, computed across days that have both
+values logged, shown as the correlation cards on the Patterns and Archive
+pages. Requires at least 5 paired data points to display — treat it as
+descriptive, not causal.
+
+Rain/storm is a derived yes/no flag (is the day's `weather_code` drizzle,
+rain, rain showers, or a thunderstorm?), correlated against fog the same
+way as the numeric fields — this is a point-biserial correlation, the same
+Pearson math applied to a binary variable.
 
 ## Notes analysis (feeds the AI summary, not shown directly)
 
