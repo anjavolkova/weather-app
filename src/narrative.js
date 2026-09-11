@@ -29,6 +29,7 @@ const STOPWORDS = new Set([
 
 const CORR_LABELS = {
   pressureHpa: "barometric pressure",
+  temperatureC: "temperature",
   kpIndex: "Kp-index",
   energy: "energy",
   sleep: "sleep quality",

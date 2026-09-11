@@ -104,6 +104,9 @@ const TREND_DISPLAY_LABELS = { rising: "Rising", falling: "Falling", stable: "St
 function renderReadingRow() {
   document.getElementById("reading-pressure").textContent =
     typeof currentEntry.pressureHpa === "number" ? `${currentEntry.pressureHpa} hPa` : "—";
+  document.getElementById("reading-condition").textContent = currentEntry.condition || "—";
+  document.getElementById("reading-temp").textContent =
+    typeof currentEntry.temperatureC === "number" ? `${currentEntry.temperatureC}°C` : "—";
   document.getElementById("reading-kp").textContent =
     typeof currentEntry.kpIndex === "number" ? currentEntry.kpIndex : "—";
   document.getElementById("reading-trend").textContent = currentEntry.trend

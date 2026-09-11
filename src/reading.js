@@ -1,4 +1,4 @@
-import { geocode, fetchPressure } from "./weather.js";
+import { geocode, fetchCurrentConditions } from "./weather.js";
 import { fetchKpIndex } from "./kpindex.js";
 import { fallbackPressure, fallbackKpIndex } from "./llmFallback.js";
 import { computeTrend } from "./trend.js";
@@ -6,7 +6,7 @@ import { checkAlerts, sendDesktopNotification } from "./notify.js";
 import { getConfig, setConfig, getPriorReading, upsertEntry } from "./store.js";
 
 /** Resolve and cache lat/lon for the configured location, geocoding only when needed. */
-async function resolveLocation() {
+export async function resolveLocation() {
   const config = getConfig();
   if (typeof config.latitude === "number" && typeof config.longitude === "number") {
     return config;
@@ -16,16 +16,17 @@ async function resolveLocation() {
 }
 
 /**
- * Fetch live pressure + Kp-index for `date`, derive the trend from the prior
- * logged reading, store it on that day's entry, and check alert thresholds.
- * Falls back to an LLM-sourced reading only if the primary API call throws.
+ * Fetch live pressure, weather condition/temperature, and Kp-index for
+ * `date`, derive the trend from the prior logged reading, store it all on
+ * that day's entry, and check alert thresholds. Falls back to an
+ * LLM-sourced reading only if the primary API call throws.
  */
 export async function fetchLiveReading(date) {
   const config = await resolveLocation();
 
   let pressure;
   try {
-    pressure = await fetchPressure(config.latitude, config.longitude);
+    pressure = await fetchCurrentConditions(config.latitude, config.longitude);
   } catch (err) {
     pressure = await fallbackPressure(config.location).catch(() => {
       throw err;
@@ -47,6 +48,9 @@ export async function fetchLiveReading(date) {
   const entry = upsertEntry(date, {
     pressureHpa: pressure.pressureHpa,
     pressureSource: pressure.source,
+    weatherCode: pressure.weatherCode ?? null,
+    condition: pressure.condition ?? null,
+    temperatureC: pressure.temperatureC ?? null,
     kpIndex: kp.kpIndex,
     trend,
     readingAsOf: pressure.time,

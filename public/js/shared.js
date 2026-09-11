@@ -5,11 +5,14 @@
 
 const CORR_LABELS = {
   pressureHpa: "Pressure",
+  temperatureC: "Temperature",
   kpIndex: "Kp-index",
   energy: "Energy",
   sleep: "Sleep",
   mood: "Mood",
 };
+
+const WEATHER_CORR_KEYS = new Set(["pressureHpa", "temperatureC", "kpIndex"]);
 
 const SYMPTOM_LINES = [
   { key: "fog", label: "Fog", color: "#3987e5" },
@@ -61,7 +64,7 @@ function renderCorrelationGroups(weatherContainer, wellbeingContainer, correlati
     nEl.className = "corr-n";
     nEl.textContent = r == null ? `Need ≥5 days (n=${n})` : `n=${n}`;
     card.append(label, value, nEl);
-    const container = key === "pressureHpa" || key === "kpIndex" ? weatherContainer : wellbeingContainer;
+    const container = WEATHER_CORR_KEYS.has(key) ? weatherContainer : wellbeingContainer;
     container.appendChild(card);
   }
 }

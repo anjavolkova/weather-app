@@ -93,10 +93,11 @@ you want help setting one of those up; it's a bigger change than the above.
 
 1. Open the **Day Log** tab (defaults to today).
 2. Set the energy / fog / mood / sleep sliders and any notes, then **Save**.
-   The backend fetches current pressure (Open-Meteo) and Kp-index (NOAA
-   SWPC) for your configured location as part of the same save, and derives
-   the pressure trend (rising/falling/stable) by comparing to the most
-   recent prior reading — it isn't guessed and isn't manually set.
+   The backend fetches current pressure, weather condition, and
+   temperature (Open-Meteo) and Kp-index (NOAA SWPC) for your configured
+   location as part of the same save, and derives the pressure trend
+   (rising/falling/stable) by comparing to the most recent prior reading —
+   it isn't guessed and isn't manually set.
 3. Check the **Month** tab for a calendar whose background reflects that
    day's barometric pressure (green = high/fair, rust = low/stormy), with
    fog and energy as plain numbers and a Kp-index badge (⚡ when it crosses
@@ -112,15 +113,26 @@ you want help setting one of those up; it's a bigger change than the above.
    AI-generated summary per month — see **Archive & AI monthly summary**
    below.
 
-## APIs used (both free, no key required)
+## APIs used (all free, no key required)
 
-- **Pressure** — [Open-Meteo](https://open-meteo.com/) geocoding + forecast
-  (`current.pressure_msl`, sea-level-adjusted hPa)
+- **Pressure, weather condition, temperature** — [Open-Meteo](https://open-meteo.com/)
+  geocoding + forecast (`current.pressure_msl`, `weather_code`,
+  `temperature_2m`) — one request gets all three. `weather_code` is a
+  standard WMO code (0 = clear sky, 3 = overcast, 61 = rain, 95 =
+  thunderstorm, etc. — see `src/weatherCodes.js` for the full table),
+  turned into a plain-language `condition` label.
 - **Geomagnetic activity** — [NOAA SWPC planetary K-index](https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json)
+- **Historical weather** (backfill only) — Open-Meteo's [historical
+  archive](https://open-meteo.com/en/docs/historical-weather-api) (ERA5
+  reanalysis), same `weather_code` plus daily high/low temperature. See
+  **Backfilling past entries** below.
 
-If either is unreachable, the app falls back to an LLM-sourced reading (same
-approach as the original artifact) when `ANTHROPIC_API_KEY` is set in the
-environment; otherwise it surfaces the original network error.
+If either live source is unreachable, the app falls back to an LLM-sourced
+reading (same approach as the original artifact) when `ANTHROPIC_API_KEY`
+is set in the environment; otherwise it surfaces the original network
+error. The fallback covers pressure and Kp-index only — not weather
+condition/temperature, which just come back empty for that day if the
+primary fetch fails.
 
 ## Scheduled auto-log
 
@@ -199,15 +211,36 @@ One JSON record per date, stored in `data/entries.json`:
   "notes": "",
   "pressureHpa": 1008.2,
   "pressureSource": "Open-Meteo",
+  "weatherCode": 61,
+  "condition": "Slight rain",
+  "temperatureC": 14.2,
   "kpIndex": 2.3,
   "readingAsOf": "2026-09-07T14:00"
 }
 ```
 
+## Backfilling past entries
+
+Weather condition/temperature were added after pressure and Kp-index, so
+days logged before that only have the older fields. To fill them in:
+
+```bash
+node scripts/backfill-weather.js
+```
+
+It finds every entry with no `weatherCode`, fetches the whole missing date
+range from Open-Meteo's historical archive in **one** request (not one
+per day), and writes each match back. Safe to re-run — it only ever
+touches entries still missing a condition, so it won't overwrite a day
+that already has one. The archive API lags a few days behind "today", so
+the very most recent days may come back unmatched; those just fill in
+normally the next time that day gets a live save (or the daily
+auto-fetch/scheduler runs).
+
 ## Correlation analysis
 
-Pearson's r between fog and each of pressure / Kp-index / energy / sleep /
-mood, computed across days that have both values logged, shown as the
+Pearson's r between fog and each of pressure / temperature / Kp-index /
+energy / sleep / mood, computed across days that have both values logged, shown as the
 correlation cards on the Patterns and Archive pages. Requires at least 5
 paired data points to display — treat it as descriptive, not causal.
 
@@ -299,10 +332,12 @@ button for it, by design.)
 ```
 server.js              Express app + API routes
 src/store.js            JSON-file persistence (entries, config, monthly AI summaries)
-src/weather.js           Open-Meteo geocoding + pressure fetch
+src/weather.js           Open-Meteo geocoding + current/historical pressure, weather condition, temperature
+src/weatherCodes.js      WMO weather_code -> plain-language condition label
+src/backfillWeather.js   Backfill logic: find entries missing a condition, fetch the range, map results back
 src/kpindex.js           NOAA Kp-index fetch
 src/llmFallback.js       LLM fallback when the above are unreachable
-src/reading.js           Orchestrates a live fetch: pressure + Kp + trend + alerts
+src/reading.js           Orchestrates a live fetch: pressure/condition/temp + Kp + trend + alerts
 src/trend.js             Pressure trend computation
 src/stats.js             Pearson correlation, fog-by-trend, chart series, month grouping
 src/narrative.js         Deterministic stats/correlations/notes analysis — feeds the AI summary prompt and the stat tiles
@@ -310,12 +345,13 @@ src/aiSummary.js         AI-generated monthly summary (prompt + Ollama/Anthropic
 src/notify.js            Alert thresholds + desktop notification
 src/csv.js               CSV export
 src/scheduler.js         In-process daily auto-fetch + monthly AI summary (node-cron)
-scripts/daily-fetch.js   Standalone entrypoint for OS cron/launchd
+scripts/daily-fetch.js       Standalone entrypoint for OS cron/launchd
+scripts/backfill-weather.js  One-time: fill weather condition/temperature into pre-existing entries
 public/js/timeseries.js  Reusable SVG time-series chart (crosshair, tooltip, legend)
 public/js/shared.js      Rendering helpers shared by the Patterns and Archive tabs
 public/js/archive.js     Archive tab: month list + per-month detail + AI summary UI
 public/                  Frontend (vanilla HTML/CSS/JS, no build step)
-tests/                   node:test unit tests for trend/stats/narrative/aiSummary/csv/notify logic
+tests/                   node:test unit tests for trend/stats/narrative/aiSummary/backfill/csv/notify logic
 ```
 
 ## Tests

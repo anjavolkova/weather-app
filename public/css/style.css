@@ -243,9 +243,15 @@ input[type="date"],
 
 .reading-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-around;
+  gap: 0.5rem 0;
   text-align: center;
   margin: 0.75rem 0;
+}
+
+.reading {
+  min-width: 4.5rem;
 }
 
 .reading-label {
