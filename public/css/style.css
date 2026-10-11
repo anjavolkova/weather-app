@@ -23,14 +23,14 @@
    order — this block coming after — is what lets it win when
    [data-theme="light"] is set. */
 [data-theme="light"] {
-  --ink: #f3efe6;
-  --panel: #fbf8f2;
-  --panel-raised: #ece3d1;
-  --line: #d6c9ab;
+  --ink: #fcfbf8;
+  --panel: #ffffff;
+  --panel-raised: #f2f0ea;
+  --line: #e2ddd1;
   --brass: #5e2a3a;
   --brass-dim: #a9798a;
   --text: #241a1a;
-  --muted: #8a7a63;
+  --muted: #837c6c;
   --rust: #b1503f;
   --clear: #5f7f52;
 }
@@ -84,7 +84,7 @@ h2,
   align-items: center;
   gap: 2rem;
   padding: 1rem 1.5rem;
-  background: linear-gradient(180deg, var(--panel-raised), var(--panel));
+  background: var(--panel);
   border-bottom: 1px solid var(--line);
   flex-wrap: wrap;
 }
@@ -485,7 +485,7 @@ input[type="range"] {
 /* ---------- Wrapped hero ---------- */
 
 .wrapped-hero {
-  background: linear-gradient(160deg, var(--panel-raised), var(--panel));
+  background: var(--panel-raised);
   border-color: var(--brass-dim);
 }
 

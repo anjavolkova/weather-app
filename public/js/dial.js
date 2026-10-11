@@ -14,9 +14,9 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 function themeColors() {
   const light = document.documentElement.dataset.theme === "light";
   return {
-    muted: light ? "#8a7a63" : "#a68d94",
+    muted: light ? "#837c6c" : "#a68d94",
     text: light ? "#241a1a" : "#f1e7e0",
-    panel: light ? "#fbf8f2" : "#2d1b27",
+    panel: light ? "#ffffff" : "#2d1b27",
     brass: light ? "#5e2a3a" : "#d9a7b4",
   };
 }
