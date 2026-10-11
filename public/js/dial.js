@@ -14,10 +14,10 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 function themeColors() {
   const light = document.documentElement.dataset.theme === "light";
   return {
-    muted: light ? "#7d735c" : "#8a93a3",
-    text: light ? "#2a2416" : "#e9e4d8",
-    panel: light ? "#fbf8f1" : "#171e28",
-    brass: light ? "#a87d28" : "#c69a4e",
+    muted: light ? "#8a7a63" : "#a68d94",
+    text: light ? "#241a1a" : "#f1e7e0",
+    panel: light ? "#fbf8f2" : "#2d1b27",
+    brass: light ? "#5e2a3a" : "#d9a7b4",
   };
 }
 
@@ -62,7 +62,7 @@ function renderBarometer(svg, fogValue) {
     svg.appendChild(path);
   }
 
-  const labelStyle = `font-family: Georgia, serif; font-size: 9px; fill: ${colors.muted}; text-transform: uppercase; letter-spacing: 0.05em;`;
+  const labelStyle = `font-family: "JetBrains Mono", monospace; font-size: 9px; fill: ${colors.muted}; letter-spacing: 0.02em; text-transform: lowercase;`;
   const clearLabel = el("text", { x: cx - r - 6, y: cy + 16, style: labelStyle, "text-anchor": "middle" });
   clearLabel.textContent = "Clear";
   svg.appendChild(clearLabel);
@@ -93,7 +93,7 @@ function renderBarometer(svg, fogValue) {
     x: cx,
     y: cy - 22,
     "text-anchor": "middle",
-    style: `font-family: Georgia, serif; font-style: italic; font-size: 22px; fill: ${colors.brass};`,
+    style: `font-family: "Playfair Display", Georgia, serif; font-weight: 600; font-size: 22px; fill: ${colors.brass};`,
   });
   valueText.textContent = typeof fogValue === "number" ? fogValue : "–";
   svg.appendChild(valueText);

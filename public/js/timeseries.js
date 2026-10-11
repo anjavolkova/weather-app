@@ -13,10 +13,10 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 function themeColors() {
   const light = document.documentElement.dataset.theme === "light";
   return {
-    surface: light ? "#fbf8f1" : "#171e28",
-    grid: light ? "#ddd0ac" : "#2a3441",
-    muted: light ? "#7d735c" : "#8a93a3",
-    text: light ? "#2a2416" : "#e9e4d8",
+    surface: light ? "#fbf8f2" : "#2d1b27",
+    grid: light ? "#d6c9ab" : "#4a2f3e",
+    muted: light ? "#8a7a63" : "#a68d94",
+    text: light ? "#241a1a" : "#f1e7e0",
   };
 }
 
@@ -84,6 +84,7 @@ function renderTimeSeriesChart(svg, options) {
   buildLegend(legendEl, lines);
   svg.innerHTML = "";
   svg.setAttribute("viewBox", `0 0 ${VB_WIDTH} ${height}`);
+  svg.style.fontFamily = '"JetBrains Mono", "SF Mono", monospace';
   svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
 
   const plotW = VB_WIDTH - PAD_LEFT - PAD_RIGHT;
